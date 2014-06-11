@@ -36,8 +36,6 @@
 
 \usepackage[bottom,hang,flushmargin]{footmisc}
 
-\graphicspath{{/Users/mtaddy/project/fresh/dmrpaper/graphs/},{/home/taddy/project/fresh/dmrpaper/graphs/}}
-
 \pdfminorversion=4
 \begin{document}
 
@@ -362,10 +360,10 @@ regression.
 
 
 \begin{figure}
-\includegraphics[width=6.25in]{fgl_coef}
+\includegraphics[width=6.25in]{../graphs/fgl_coef}
 \caption{\label{fgl_coef} {\it Forensic Glass}. Regularization paths for each glass-type response category.  AIC and BIC selections are marked with dashed vertical lines (orange and green respectively; they overlap for \cd{Tabl}).}
 \vskip 1cm
-\includegraphics[width=6.25in]{fgl_cv}
+\includegraphics[width=6.25in]{../graphs/fgl_cv}
 \caption{\label{fgl_cv}  {\it Forensic Glass}. OOS deviance for \cd{dmr} and \cd{glment} in 20 fold CV.  Dots are mean and segments show $\pm$ 1se.  The vertical dashed lines mark CV and IC shared $\lambda_t$ selections, with black for CV (min and 1se), green BIC and orange AIC. Horizontal lines are mean OOS deviance for response-specific IC selections. The top axis is the mean number of nonzero coefficients across response categories.}
 \end{figure}
 
@@ -435,11 +433,11 @@ either multinomial IC over the Poisson AIC.
 
 \begin{figure}[t]
 \vskip -.25cm
-~~\includegraphics[width=6in]{lightbeer_cv}
+~~\includegraphics[width=6in]{../graphs/lightbeer_cv}
 \vskip -.25cm
 \caption{\label{lb_cv} {\it Light Beer}.  OOS deviance for \cd{dmr} and \cd{glment} in 20 fold CV, following the same scheme as in Figure \ref{fgl_cv}.  The \cd{glmnet} path terminated early (i.e., before $\lambda_t = \lambda_1/10^4$) due to numerical issues.} 
 \vskip .5cm
-~~\includegraphics[width=6in]{lightbeer_coef}  
+~~\includegraphics[width=6in]{../graphs/lightbeer_coef}  
 \caption{\label{lb_coef} {\it Light Beer}.  Coefficients on the 95 binary main effect variables.  The colors show negative $\hat \varphi$ values moving from yellow to red at -4, and positive values moving from light to dark blue at 1.  A subset of variable identities are marked along the bottom axis. }
 \end{figure}
 
@@ -685,7 +683,7 @@ votes (1sd extra \cd{funny} increases \cd{sex} by around 60\%, but 1sd extra
 \cd{useful} corresponds to a 30\% drop in expected \cd{sex}).
 
 \begin{figure}
-\hspace{-.25in}\includegraphics[width=6.75in]{yelp_ir_paths}
+\hspace{-.25in}\includegraphics[width=6.75in]{../graphs/yelp_ir_paths}
 \caption{\label{yelp_ir} {\it Yelp}.  Inverse regression coefficient
 regularization paths for counts of the tokens \cd{:-)}, \cd{:-(}, and \cd{sex}
 regressed onto covariates $[\bm{u},\bm{v}]$.  The legend highlights select
@@ -712,7 +710,7 @@ rows of $\bm{C}/\bm{m}$ are word proportions $\bm{c}_i/m_i$.
 
 \begin{figure}
 \vskip -.2cm
-\hskip .5in \includegraphics[width=5.2in]{yelp_cv}
+\hskip .5in \includegraphics[width=5.2in]{../graphs/yelp_cv}
 \vskip -.2cm
 \caption{\label{yelp_cv} {\it Yelp}.  20-fold OOS  prediction of $\log(y_i +1)$, where $y_i$ is a reviews combined f/u/c votes.  For both inverse regression
 (IR) procedures, penalization was selected inside the experiment via independent Poisson AIC.  The lines and points mark mean OOS MSE, and standard errors are too narrow to see. }
@@ -763,7 +761,7 @@ inference can be improved by conditioning on additional SR projections.
 \begin{figure}[t]
 \vskip -.5cm
 \hskip .5in
-\includegraphics[width=5.2in]{yelp_fwd_paths}
+\includegraphics[width=5.2in]{../graphs/yelp_fwd_paths}
 \caption{\label{yelpfwd} {\it Yelp.}  Forward Poisson log regression of combined f/u/c vote counts onto review attributes $\bm{u}_i$ and text-vote projections $\bm{z}^v_i$.  These are gamma lasso paths with high concavity ($\gamma=10$). }
 \end{figure}
 
@@ -864,7 +862,7 @@ practically significant.
 
 \begin{figure}[ht]
 \vskip .25cm
-\includegraphics[width=6.35in]{yelp_boots}
+\includegraphics[width=6.35in]{../graphs/yelp_boots}
 \caption{\label{boots} {\it Yelp.}  Inference for user effects.  The histograms show $100$ bootstrapped coefficient estimates in a model that regresses $y_i$ on attributes $\bm{u}_i$ and on the MNIR projections for both vote data ($\bm{z}^v_i$) {\it and} for 
 the user variables of interest (the \cd{user.*} columns of $\bm{z}^u_i$).  The orange regions mark 95\% confidence intervals ($\pm 2\mr{se}$) for the corresponding MLE coefficients in regression of $y_i$ 
 on $\bm{u}_i$ alone.}
@@ -923,7 +921,7 @@ l(\alpha, \bs{\varphi}) = \sum_i \omega_i
 Effect of $\zeta$ is clearest around $c_i = 0$: as the buffer decreases, the weights $\omega_i$ get smaller while the distance from `response' $\log(\omega_i/m_i)$ to that for $c_i=1$, $\log( [1+\zeta]/m_i )$, gets larger.
 
 \begin{figure}
-\includegraphics[width=6.5in]{wlscompare}
+\includegraphics[width=6.5in]{../graphs/wlscompare}
 \caption{\label{wlspic} {\it Yelp.} Weighted least squares approximation.  The left plot shows correlation between  Poisson coefficient estimates and the WLS values, as a function of buffer $\zeta$. At marked $\zeta=e^{-3}\approx 1/20$, the center graph plots the estimated values under each method against each other and the right panel shows projection onto two vote categories (useful and cool overlap very closely, so we've left cool unplotted).}
 \end{figure}
 
