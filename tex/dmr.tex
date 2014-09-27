@@ -62,22 +62,19 @@
 \vskip 2cm
 
 {\noindent This article introduces a model-based approach to distributed
-computing for high-dimensional-response multinomial logistic regression. The
-work is driven by applications in multinomial inverse regression analysis of
-unstructured data, especially text, where large sets of documents are
-tokenized and the token counts are modeled as arising from a  multinomial
-dependent upon document attributes.  The second half of the paper is a text
-mining case study in prediction and inference for reviews on the Yelp website.
-Our statistical model has counts for each response category treated as
-independent Poisson regressions via plug-in estimates for fixed effects shared
-across categories. We fit regularization paths for each regression  and  use
-information criteria to select coefficient estimates. The model provides a
-basis for distributed, rather than just parallel, statistical inference: such
-algorithms are essential in scaling to truly Big data that is too large to be
-stored or analyzed on a single machine, and we include a MapReduce recipe  for
-application of the technique on  distributed file systems.  Examples include
-illustration in polychotomous regression and prediction and inference in our
-Yelp case study. }
+computing for multinomial logistic regression. We treat
+counts for each response category as independent Poisson regressions
+via plug-in estimates for fixed effects shared across categories.  The work is
+driven by estimation of the high-dimensional-response multinomial models that
+arise in analysis of a large number of random counts. Our archetypal
+applications are in text analysis, where large sets of documents are tokenized
+and the token counts are modeled as arising from a  multinomial dependent upon
+document attributes. We estimate such models for a publicly available dataset
+of business reviews from the Yelp website, with review text regressed onto a
+large set of explanatory variables (user, business, and rating information).
+The fitted models then serve as a basis for exploring the connection between
+words and variables of interest (e.g., star rating), for reducing dimension
+into supervised factor scores, and for prediction. }
  
 
 \newpage
@@ -88,47 +85,6 @@ Yelp case study. }
 \section{Introduction}
 \label{intro}
 
-The likelihood for count data from a set of $D$ independent Poisson trials
-factorizes as the product of a multinomial distribution for the individual
-counts conditional on the sum total across all trials and a Poisson
-distribution on this total.  Say $\bm{c}_i$ is a vector of counts in $D$
-categories, summing to $m_i = \sum_j c_{ij}$, and that each $c_{ij}$ has
-been drawn independently $\mr{Po}\left(\lambda_{ij}\right)$ -- Poisson with
-intensity (i.e., mean) $\lambda_{ij}$. Then the multinomial is `embedded' in
-the Poisson: \begin{equation}\label{embed} \mr{p}(\bm{c}_{i}) = \prod_j
-\mr{Po}\left(c_{ij};~\lambda_{ij}\right) =
-\mr{MN}\left(\bm{c}_i;~\bs{\lambda}_{i}/\Lambda_i,
-~m_i\right)\mr{Po}\left(m_i;~\Lambda_i\right), \end{equation} where $\Lambda_i
-= \sum_j \lambda_{ij}$ and the multinomial denoted here has probabilities
-$\lambda_{ij}/\Lambda_i$ and size $m_i$.
-
-This well known connection has long been used by statisticians to justify
-ignoring whether sampling was conditional on margin totals in analysis of
-contingency tables. \cite{birch_maximum_1963} showed that the maximum
-likelihood estimate (MLE) of $\bs{\lambda}_i$ is unchanged under a variety of
-sampling models for 3-way tables {\it under the constraint} that $\Lambda_{i}
-= m_i$. This is satisfied at the MLE for a saturated model, with as many
-parameters as cells in the table. \cite{palmgren_fisher_1981} extended the
-Birch work to log-linear regression models, with $\lambda_{ij} = \exp[\alpha_j
-+ \mu_i + \bs{\varphi}_j'\bm{v}_i]$, where $\bm{v}_i$ is a $p$-vector of
-covariates, for observations $i=1\ldots n$. The Fisher information on
-$\bs{\Phi} = [\bs{\varphi}_1 \cdots \bs{\varphi}_d]'$ is the same regardless
-of whether or not you've conditioned on $m_i$ (i.e., in either multinomial
-logistic regression or Poisson log regression) so long as $\mu_i$ in the
-Poisson model is estimated at its conditional MLE, $\hat \mu_i =
-\log\left(m_i/\sum_j e^{\alpha_j + \bs{\varphi}_j\bm{v}_i}\right)$.
-
-Traditionally, this connection is invoked when applying multinomial logistic
-regression: totals $m_i$ are then ancillary and the $\mu_i$ drop out of the
-likelihood.  This paper takes the opposite view: if we are willing to fix
-estimates $\hat\mu_i$ -- potentially not at their MLE -- then the factorized
-Poisson likelihood can be analyzed independently across response categories.
-Specifically, Section \ref{MU} argues for $\hat\mu_i = \log m_i$ as a plug-in
-estimator that minimizes the bias from using Poisson likelihoods in place of a
-multinomial for log linear regression. We label this strategy, including
-penalized estimation and variable selection within each Poisson, distributed
-multinomial regression (DMR).  It is available in the \cd{distrom} package for
-\cd{R}.
 
 The idea is motivated by applications that involve very large response
 dimension $D$,  as in multinomial analysis of text counts or other large
@@ -190,6 +146,47 @@ Section \ref{END} closes with a quick discussion.
 \section{Estimating baseline intensity}
 \label{MU}
 
+The likelihood for count data from a set of $D$ independent Poisson trials
+factorizes as the product of a multinomial distribution for the individual
+counts conditional on the sum total across all trials and a Poisson
+distribution on this total.  Say $\bm{c}_i$ is a vector of counts in $D$
+categories, summing to $m_i = \sum_j c_{ij}$, and that each $c_{ij}$ has
+been drawn independently $\mr{Po}\left(\lambda_{ij}\right)$ -- Poisson with
+intensity (i.e., mean) $\lambda_{ij}$. Then the multinomial is `embedded' in
+the Poisson: \begin{equation}\label{embed} \mr{p}(\bm{c}_{i}) = \prod_j
+\mr{Po}\left(c_{ij};~\lambda_{ij}\right) =
+\mr{MN}\left(\bm{c}_i;~\bs{\lambda}_{i}/\Lambda_i,
+~m_i\right)\mr{Po}\left(m_i;~\Lambda_i\right), \end{equation} where $\Lambda_i
+= \sum_j \lambda_{ij}$ and the multinomial denoted here has probabilities
+$\lambda_{ij}/\Lambda_i$ and size $m_i$.
+
+This well known connection has long been used by statisticians to justify
+ignoring whether sampling was conditional on margin totals in analysis of
+contingency tables. \cite{birch_maximum_1963} showed that the maximum
+likelihood estimate (MLE) of $\bs{\lambda}_i$ is unchanged under a variety of
+sampling models for 3-way tables {\it under the constraint} that $\Lambda_{i}
+= m_i$. This is satisfied at the MLE for a saturated model, with as many
+parameters as cells in the table. \cite{palmgren_fisher_1981} extended the
+Birch work to log-linear regression models, with $\lambda_{ij} = \exp[\alpha_j
++ \mu_i + \bs{\varphi}_j'\bm{v}_i]$, where $\bm{v}_i$ is a $p$-vector of
+covariates, for observations $i=1\ldots n$. The Fisher information on
+$\bs{\Phi} = [\bs{\varphi}_1 \cdots \bs{\varphi}_d]'$ is the same regardless
+of whether or not you've conditioned on $m_i$ (i.e., in either multinomial
+logistic regression or Poisson log regression) so long as $\mu_i$ in the
+Poisson model is estimated at its conditional MLE, $\hat \mu_i =
+\log\left(m_i/\sum_j e^{\alpha_j + \bs{\varphi}_j\bm{v}_i}\right)$.
+
+Traditionally, this connection is invoked when applying multinomial logistic
+regression: totals $m_i$ are then ancillary and the $\mu_i$ drop out of the
+likelihood.  This paper takes the opposite view: if we are willing to fix
+estimates $\hat\mu_i$ -- potentially not at their MLE -- then the factorized
+Poisson likelihood can be analyzed independently across response categories.
+Specifically, Section \ref{MU} argues for $\hat\mu_i = \log m_i$ as a plug-in
+estimator that minimizes the bias from using Poisson likelihoods in place of a
+multinomial for log linear regression. We label this strategy, including
+penalized estimation and variable selection within each Poisson, distributed
+multinomial regression (DMR).  It is available in the \cd{distrom} package for
+\cd{R}.
 Consider multinomial logistic regression with linear equations $\eta_{ij} =
 \alpha_{j} + \bm{v}_i'\bs{\varphi}_j$ for each observation $i$ and response
 category $j$.  The negative log likelihood is proportional to 
@@ -295,20 +292,18 @@ effect of any collinear variables and tends to yield sparser $\bs{\hat
 
 Even thought GL paths have this nice feature of diminishing bias, each segment
 on the path requires only a simple $L_1$ minimization.  These are solved via
-coordinate descent within iteratively re-weighted least squares (IRLS), the algorithm in \citet[Section
-6]{taddy_gamma_2013}, where
-each iteration has weights $v_i = \lambda_i$ and `response' $z_i =
-\log\lambda_i + y_i/\lambda_i - 1$.  Here, $\lambda_i = m_ie^{\hat\eta_i}$ is the
-fitted intensity at current estimates (recall we're suppressing
-the $j$  subscript). A full overview of GL estimation is in the original
-paper, along with a general review of concave penalization.  A central theme
-of the article is that  one needs to understand the properties of the entire
-path in order to pick a single point estimate, $\bs{\varphi}^t$.
-The following section tackles this issue for DMR.
+coordinate descent within a Poisson-specific version of iteratively re-weighted least squares (IRLS): the
+algorithm in \citet[Section 6]{taddy_gamma_2013} with each iteration's
+`observation weights' $\lambda_i$ and `weighted LS response' $\log\lambda_i +
+y_i/\lambda_i - 1$.  Here, $\lambda_i = m_ie^{\hat\eta_i}$ is the fitted
+intensity at current estimates (recall we're suppressing the $j$  subscript).
+A full overview of GL estimation is in the original paper, along with a
+general review of concave penalization.  A central theme of the article is
+that  one needs to understand the properties of the entire path in order to
+pick a single point estimate, $\bs{\varphi}^t$.
 
 
-
-\section{Selection via Information Criteria}
+\subsection{Selection via Information Criteria}
 \label{IC}
 
 Penalized path estimation is a tool for enumerating a set of candidate models:
@@ -401,58 +396,6 @@ average value.  For each IC, the independent Poisson selections are more
 heavily penalized than their group-learned multinomial-based counterparts.  As
 we will see again in later examples, independent Poisson-based AIC selection
 is the top performer.
-
-\subsection{Light beer}
-
-Our second example is from the Nielson Consumer Panel data, available for
-academic research through the Kilts Center at Chicago Booth
-(\cd{research.chicagobooth.edu/nielsen}).  This survey tracks purchases by
-tens of thousands of US households since 2004.  We will focus on $n=73,128$
-purchases of light beer in a number of US markets.  The response of interest
-is brand choice, of a possible five major light beer labels: Budweiser,
-Miller, Coors, Natural, and Busch.  Each purchase is associated with a
-household that is codified through 16 standard demographic categorical
-variables: maximum \cd{age}, total \cd{income}, main \cd{occupation}, etc.
-We've expanded these covariates to 95 binary dummy variables, and included a
-further 3000 bivariate dummy interactions that are not identically zero, for a
-total of $p=3095$ covariates.
-
-As in the forensic glass example, this is polychotomous regression with
-$m_i=1$ and $\hat\mu_i = 0$ for all observations.  Despite this, DMR again
-does as well as  logistic multinomial regression in OOS prediction.  Figure
-\ref{lb_cv} plots performance; both DMR and \cd{glmnet} use lasso
-regularization. Average OOS multinomial deviance $R^2$ is around 45\% for both
-\cd{glmnet} and DMR under all  selection rules {\it except} the Poisson
-deviance BIC. We've repeatedly observed such poor  performance for this rule.
-Since the Poisson IC rules tend to favor simpler models than the multinomial
-IC rules, the BIC's tendency to under-fit is especially harmful.  For this
-reason we use the AIC exclusively in any applications using independent
-Poisson selection (in particular, whenever joint multinomial IC is
-computationally infeasible). There is no empirical evidence of advantage for
-either multinomial IC over the Poisson AIC.
-
-\begin{figure}[t]
-\vskip -.25cm
-~~\includegraphics[width=6in]{../graphs/lightbeer_cv}
-\vskip -.25cm
-\caption{\label{lb_cv} {\it Light Beer}.  OOS deviance for \cd{dmr} and \cd{glment} in 20 fold CV, following the same scheme as in Figure \ref{fgl_cv}.  The \cd{glmnet} path terminated early (i.e., before $\lambda_t = \lambda_1/10^4$) due to numerical issues.} 
-\vskip .5cm
-~~\includegraphics[width=6in]{../graphs/lightbeer_coef}  
-\caption{\label{lb_coef} {\it Light Beer}.  Coefficients on the 95 binary main effect variables.  The colors show negative $\hat \varphi$ values moving from yellow to red at -4, and positive values moving from light to dark blue at 1.  A subset of variable identities are marked along the bottom axis. }
-\end{figure}
-
-Main effect coefficient estimates, using Poisson AIC selection, are
-illustrated in Figure \ref{lb_coef}; they are 75\% sparse. There are some
-obvious large effects by market: odds of Busch drop massively (around $e^{4}
-\approx 55$ lower than baseline) in Los Angeles or Sacramento (Busch is not
-widely sold in California) while Miller's odds in Chicago are around 3 times
-higher than baseline.  More subtly, we see that, for example,  Miller's
-share rises and Bud's drops in households with a microwave.  The set of
-$5\times3000$ coefficients on dummy interactions is less sparse than the main
-effects, with only 57\% zeros.  This includes many large interaction effects
-that codify unobserved or very rare events, such as  the purchase of Natural
-light by a household in Little Rock AR with oldest member age 30-39
-($\hat\varphi = -7.3$).
 
 \section{MNIR}
 \label{MNIR}
