@@ -560,6 +560,42 @@ high performance computing architecture (much faster than, say, a virtual AWS in
 \section{Yelp review popularity prediction}
 \label{YELP}
 
+\begin{table}[p]\vspace{-.5cm}
+\small\setstretch{1}
+\hspace{-1cm}
+\begin{tabular}{cll|r}
+& $\bs{\tau}$ & $\bs{\hat\varphi \neq 0}$ & {\bf top ten words by loading}\\
+\hline
+ & 0 &  & \footnotesize  great love amaz favorite deliciou best awesome alway perfect excellent \\
++stars & 2 & 8440 & \footnotesize  unmatch salute :-)) prik laurie pheonix trove banoffee exquisite sublime \\
+ & 20 & 3077 & \footnotesize  heaven perfection gem divine amaz die superb phenomenal fantastic deliciousnes \\
+ & 200 & 508 & \footnotesize  gem heaven awesome wonderful amaz fantastic favorite love notch fabulou \\
+\hline
+ & 0 &  & \footnotesize  not worst ask horrib minut rude said told would didn \\
+-stars & 2 & 8440 & \footnotesize  rude livid disrespect disgrace inexcusab grossest incompetent audacity unmelt acknowledge \\
+ & 20 & 3077 & \footnotesize  rude incompetent unacceptab unprofessional inedib worst apology disrespect insult acknowledge \\
+ & 200 & 508 & \footnotesize  worst horrib awful rude inedib terrib worse tasteles disgust waste \\
+\hline
+ & 0 &  & \footnotesize  you that know like your yelp ... what don who \\
+funny & 2 & 6508 & \footnotesize  dimsum rue reggae acne meathead roid bong crotch peni fart \\
+ & 20 & 1785 & \footnotesize  bitch shit god dude boob idiot fuck hell drunk laugh \\
+ & 200 & 120 & \footnotesize  bitch dear god hell face shit hipst dude man kidd \\
+\hline
+ & 0 &  & \footnotesize  that yelp you thi know biz-photo like all http :// \\
+useful & 2 & 5230 & \footnotesize  fiancee rife dimsum maitre jpg poultry harissa bureau redirect breakdown \\
+ & 20 & 884 & \footnotesize  biz-photo meow harissa www bookmark :-/ http :// (?), tip \\
+ & 200 & 33 & \footnotesize  www http :// com factor already final immediate ask hope \\
+\hline
+ & 0 &  & \footnotesize  yelp you that biz-photo http :// www know like your \\
+cool & 2 & 4031 & \footnotesize  boulder lewi rogue lagunita wanton celebratory hanker politic mozzerella onsite \\
+ & 20 & 577 & \footnotesize  userid htm cen rand poem sultry arlin brimm cubic inspiration \\
+ & 200 & 11 & \footnotesize  biz-photo select yelp along certain fil chose house  \\
+\hline\end{tabular}
+\caption[l]{\label{topwords}
+Top 10 words by loading on review characteristics.\hfill}
+
+\end{table}
+
 These data were supplied by the review site Yelp for a data mining contest on \cd{kaggle.com}.  Full details are at \cd{www.kaggle.com/c/yelp\!-\!recruiting/data}; we'll consider the business, user, and review datasets.  The reviews, of all sorts of businesses, were recorded on January 19, 2013 for a sample of locations in the southwest US (mostly around Phoenix AZ).  The goal of the competition was to predict the combined number of `funny', `useful', or `cool' (f/u/c) votes that a given review receives from other users.  Such information can be used by yelp to promote f/u/c  reviews before waiting for the users to grade them as such.  
 The example is typical of the problems we encounter in data mining, while it has the advantage that it is publicly available and not so large that we cannot -- for comparison -- also analyze and cross validate in-memory using a standard lasso.
 
