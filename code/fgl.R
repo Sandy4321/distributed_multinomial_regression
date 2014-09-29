@@ -2,7 +2,8 @@
 library(distrom)
 library(MASS)
 data(fgl)
-fit <- dmr(NULL, fgl[,1:9], fgl$type, lambda.min.ratio=1e-4, gamma=0, tol=1e-8, family="gaussian")
+fit <- dmr(NULL, fgl[,1:9], fgl$type, 
+	lambda.min.ratio=1e-4, gamma=0, tol=1e-8)
 
 ## plot the individual Poisson model fit and selection
 pdf(file="fgl_coef.pdf",width=8,height=4)
@@ -10,8 +11,6 @@ par(mfrow=c(2,3),mai=c(.3,.3,.6,.2),omi=c(.4,.4,0,0))
 for(j in 1:6){
 	plot(fit[[j]],xlab="",ylab="",col="grey70")
 	mtext(names(fit)[j],font=2,line=2,cex=.9)
-	# abline(v=log(fit[[j]]$lambda[which.min(AIC(fit[[j]]))]), col="darkorange",lty=2) 
-	# abline(v=log(fit[[j]]$lambda[which.min(BIC(fit[[j]]))]), col="green",lty=2) 
 }
 mtext("log lambda", outer=TRUE, font=3,side=1,line=1)
 mtext("coefficient",outer=TRUE, font=3,side=2,line=1)
@@ -25,17 +24,18 @@ chunks <- round(seq.int(1,n,length=K+1))
 randi <- sample.int(n)
 oosdev <- rep(0,K)
 
-getdev <- function(fit){ # multinomial deviance
-			eta <- predict(fit,fgl[lo,1:9])
+getdev <- function(f){ # multinomial deviance
+			eta <- predict(f,fgl[lo,1:9])
 			ylo <- cbind(1:length(lo),fgl$type[lo])
 			d <- eta[ylo] - log(rowSums(exp(eta))) 
 			return(mean(-2*d)) }
 
 for(k in 1:K){ # CV loop
 	lo <- randi[chunks[k]:chunks[k+1]]
-	fitk <- dmr(NULL, counts=fgl$type[-lo], fgl[-lo,1:9], gamma=0,family="gaussian",
-				cores=6,lambda.start=lambda[1],lambda.min.ratio=1e-4)
-	oosdev[k] <- getdev(fit)
+	fitk <- dmr(NULL, 
+				counts=fgl$type[-lo], fgl[-lo,1:9], gamma=1, 
+				lambda.start=lambda[1],lambda.min.ratio=1e-4)
+	oosdev[k] <- getdev(fitk)
 	print(k)
 }
 cvm <- mean(oosdev)
