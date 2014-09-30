@@ -361,6 +361,10 @@ regression.
 \caption{\label{fgl_cv}  {\it Forensic Glass}. OOS deviance for \cd{dmr} and \cd{glment} in 20 fold CV.  Dots are mean and segments show $\pm$ 1se.  The vertical dashed lines mark CV and IC shared $\lambda_t$ selections, with black for CV (min and 1se), green BIC and orange AIC. Horizontal lines are mean OOS deviance for response-specific IC selections. The top axis is the mean number of nonzero coefficients across response categories.}
 \end{figure}
 
+\begin{figure}
+\includegraphics[width=3in]{../graphs/fgl_mu}
+\end{figure}
+
 Our first illustration uses the small `forensic glass' dataset from
 \citet{venables_modern_2002}, available in the \cd{MASS} library for \cd{R}
 under the name \cd{fgl}.  The data are 214 observations on fragments of glass
@@ -512,48 +516,6 @@ include a big-$K$ set of explanatory attributes, possibly including many fixed
 or latent effects.   This requires a new computational framework, and it has
 driven development of DMR.  The distribution allows MNIR to work on a
 previously impossible scale.
-
-\section{A MapReduce algorithm} 
-\label{MR}
-
-We now outline a MapReduce algorithm for analysis of unstructured  data via
-distributed MNIR.   MapReduce \citep[MR;][]{dean_mapreduce:_2004} is a  recipe
-for analysis of massive datasets, designed to work when the data itself is
-distributed: stored in many files on a network of distinct machines.
-The most common platform for  MR is Hadoop paired with a distributed file-
-system (DFS)  optimized for such operations (e.g., Hadoop DFS or
-Amazon's S3 storage).
-
-A MapReduce routine has three main steps: map, sort, and reduce.  The sort  is handled by 
-Hadoop, such that the statistician need worry only about map and reduce.  The map operation parses  unstructured data into a special format.  For us, in a text mining example, the mapper program will take a document as input, parse the text into tokens (e.g. words), and output lines of processed token counts: `\cd{token   document|count}'.  The pre-tab item (our \cd{token}) is called a `key'.  Hadoop's sort facility uses these keys to send the output of your mappers to machines for the next step, reducers, ensuring that all instances of the same key (e.g., the same word) are grouped together at a single reducer.  The reducer then executes some operation that is independent-by-key, and the output is written to file (usually one file per reducer).
-
-Distributed MNIR fits nicely in the MR framework.  Our map step tokenizes your unstructured data  and organizes the output by token keys.  Reduce then takes all observations on a single token and runs a Poisson log regression, applying the gamma lasso with IC selection to obtain coefficient estimates.  These are used to build our SR scores, which can be employed in forward regression after the MR routine is done.  This recipe is detailed in Algorithm \ref{mralgo}.
-
-\vskip .2cm
-\begin{algorithm}[h!]
-\caption{\label{mralgo} Distributed MNIR }
-\vskip .25cm
-{\bf Map:}  For each document, tokenize and count sums for each token.  Save the total counts $m_i$ along with attribute information $\bm{v}_i$. Output \cd{token   document|count}.
-
-\vskip .25cm
-Combine totals $m_i$ and attributes $\bm{v}_i$ into a single table, say \cd{VM}. This info can be generated during map or extracted in earlier steps.  Cache \cd{VM} so it is available to your reducers.
-
-\vskip .25cm
-{\bf Reduce:} For each token key `$j$', obtain a regularization path for Poisson regression of counts $c_{ij}$ on attributes $\bm{v}_i$ with $\hat\mu_i = \log m_i$.  Apply AIC to select a segment of coefficients from this path, say $\bs{\hat\varphi}_j$, and output nonzero elements in sparse triplet format: \cd{word|document|count}. 
-
-\vskip .25cm
-Each reducer maintains a running total for SR projection, $\bm{z}_i \stackrel{+}{=} \bm{x}_i'\bs{\hat \varphi_j}/m_i$, output as say \cd{Z.r} for the $r^{th}$ reducer.  When all machines are done we aggregate \cd{Z.r} 
-to get the complete projections.  
-
-\vskip .25cm
-The final output is the $n \times K$ table \cd{Z} (or with $<K$ columns if you don't need all projection dimensions).  The framework is completed in forward regression with \cd{Z} and \cd{VM}. 
-\vskip .5cm
-\end{algorithm}
-
-
-
-We've written this as a single MR algorithm, but other variations may work better for your computing architecture. Our most common implementation uses streaming Hadoop on Amazon Web Services (AWS) to execute the map on a large number of files in AWS S3 cloud storage, but replaces the regression reduce step with a simple write, to solid state storage `midway' at the University of Chicago's Research Computing Center, of token counts tabulated by observation.  For example, given 64 reducer machines on AWS the result is 64 text tables on midway, with lines `\cd{word|doc|count}', each containing {\it all} nonzero counts for a subset of the vocabulary of tokens.  These files are small enough to fit in working memory\footnote{If not, use more reducers or split the files.} and can be analyzed on distinct compute nodes, each employing another layer of parallelization in looping through Poisson regression for each token.  This scheme is able to take advantage of Hadoop for fast tokenization of distributed data, and of
-high performance computing architecture (much faster than, say, a virtual AWS instance) for distributed  regression analyses.  This is a model that should work well for the many statisticians who have access to computing grids that are designed for high throughput tasks more traditionally associated with physics or chemistry.
 
 
 \section{Yelp review popularity prediction}
@@ -797,14 +759,7 @@ estimate the real effect of user characteristics. This section first describes
 effect estimation under the setup of Section \ref{YELP}, before investigating how
 inference can be improved by conditioning on additional SR projections.
 
-\begin{figure}[t]
-\vskip -.5cm
-\hskip .5in
-\includegraphics[width=5.2in]{../graphs/yelp_fwd_paths}
-\caption{\label{yelpfwd} {\it Yelp.}  Forward Poisson log regression of combined f/u/c vote counts onto review attributes $\bm{u}_i$ and text-vote projections $\bm{z}^v_i$.  These are gamma lasso paths with high concavity ($\gamma=10$). }
-\end{figure}
-
- Figure \ref{yelpfwd} shows regularization paths for
+Regularization paths for
 Poisson regression (full generalized linear model, not a linear model for
 log $y$) of  counts $y_i$ on   $\bm{u}_i$ and
 $\bm{z}^v_i$.  This is a gamma lasso fit with $\gamma =10$, for a very concave
@@ -823,7 +778,7 @@ to write popular reviews.  This situation occurs because the individual
 category votes are highly collinear, with correlations between each other of
 0.7 to 0.9.
 
-\subsection{Improved treatment effect estimation}
+\subsection{Confounder Adjustment}
 
 Inference about regression parameters is notoriously difficult in the presence of high dimensional collinear controls.  Likelihood maximization for the full 14,347
 variable regression in our Yelp example, of vote count on all attributes and all text counts,  would be very expensive and implies only around 15 observations per covariate.  
@@ -847,7 +802,7 @@ for prediction is now working against us in inference.
 
 In contrast, because the text covariates, $\bm{c}_i$, enter only through the 9
 dimensional SR projection $\bm{z}^v_i$, we are able to use likelihood maximization
- to estimate the partial effects of Figure \ref{yelpfwd}.
+ to estimate the partial effects.
 We can improve these estimates still by adding the SR
 projections $z^u_{ik}$ corresponding to the treatments of interest.    To see why, look
 again to the treatment effects regression in (\ref{teffects}): 
@@ -864,42 +819,14 @@ For the same reasons, including in forward regression both $\bm{z}_i^v$ {\it
 and} the relevant elements of $\bm{z}_i^u$, say $\bm{z}_i^d$ where $\bm{d}_i$
 contains the \cd{user.*} elements of $\bm{u}_i$, more fully controls for the
 confounding information available in review text. This is straightforward to
-demonstrate through the MNIR sufficiency results.  The model of Figure
-\ref{yelpfwd} has $y_i \indep \bm{c}_i | \bm{z}^v_i, \bm{u}_i, m_i$, while an
-augmented {\it treatment effects MNIR} forward model has $y_i, \bm{d}_i \indep
+demonstrate through the MNIR sufficiency results.  The model  has $y_i \indep
+\bm{c}_i | \bm{z}^v_i, \bm{u}_i, m_i$, while an augmented {\it treatment
+effects MNIR} forward model has $y_i, \bm{d}_i \indep
 \bm{c}_i | \bm{z}^v_i,\bm{z}^d_i, \bm{u}_i\!\setminus\!\bm{d}_i, m_i$ with
 $\bm{u}_i\!\setminus\!\bm{d}_i$ the  elements of $\bm{u}_i$ that are
 considered controls. In the latter procedure, it is  the {\it joint}
 distribution of $y_i$ and $\bm{d}_i$ that is made conditionally independent of
 the text information.
-
-Bootstrap sampling distributions for user characteristic coefficients under
-this augmented treatment-effects forward model  (regressing $y_i$ on
-$\bm{u}_i$, $\bm{z}_i^v$, and $\bm{z}_i^d$) are shown in Figure
-\ref{boots}.  This is a standard sampling-with-replacement nonparametric
-bootstrap \citep[e.g.,][]{efron_missing_1994}, and both MNIR and forward
-regression are re-estimated in each bootstrap sample.  Figure \ref{boots} also
-includes standard MLE confidence intervals for coefficients on
-$\bm{d}_i$ in the non-text Poisson regression of $y_i$ on $\bm{u}_i$.
-Comparing the two sets of results, note that the extra variance in the
-bootstrap sample is due in part to the different distributions being
-approximated: the confidence intervals condition on observed design
-$\bm{U}$, whereas the bootstrap target includes joint covariate-response
-sampling uncertainty. But we also see that the bootstrap samples are centered
-away from the confidence intervals for \cd{usr.stars} and \cd{usr.count}.  The
-distinctions are not big here (e.g., for a 1{\rm sd} increase in
-\cd{usr.count},  text conditioning moves us from a 19\% to a 15\% increase in
-$\ds{E}y_i$), but the difference is real and in other contexts could be
-practically significant.
-
-
-\begin{figure}[ht]
-\vskip .25cm
-\includegraphics[width=6.35in]{../graphs/yelp_boots}
-\caption{\label{boots} {\it Yelp.}  Inference for user effects.  The histograms show $100$ bootstrapped coefficient estimates in a model that regresses $y_i$ on attributes $\bm{u}_i$ and on the MNIR projections for both vote data ($\bm{z}^v_i$) {\it and} for 
-the user variables of interest (the \cd{user.*} columns of $\bm{z}^u_i$).  The orange regions mark 95\% confidence intervals ($\pm 2\mr{se}$) for the corresponding MLE coefficients in regression of $y_i$ 
-on $\bm{u}_i$ alone.}
-\end{figure}
 
 \section{Discussion}
 \label{END}
@@ -917,9 +844,54 @@ independent Poissons is that the aggregate total, $m_i$, is Poisson.  We've
 attempted to mitigate the influence of this assumption, but that is
 unnecessary if you consider the Poisson a fine model in and of itself.
 
+\appendix
+\section{Appendix}
+
+\subsection{MapReduce} 
+\label{MR}
+
+We now outline a MapReduce algorithm for analysis of unstructured  data via
+distributed MNIR.   MapReduce \citep[MR;][]{dean_mapreduce:_2004} is a  recipe
+for analysis of massive datasets, designed to work when the data itself is
+distributed: stored in many files on a network of distinct machines.
+The most common platform for  MR is Hadoop paired with a distributed file-
+system (DFS)  optimized for such operations (e.g., Hadoop DFS or
+Amazon's S3 storage).
+
+A MapReduce routine has three main steps: map, sort, and reduce.  The sort  is handled by 
+Hadoop, such that the statistician need worry only about map and reduce.  The map operation parses  unstructured data into a special format.  For us, in a text mining example, the mapper program will take a document as input, parse the text into tokens (e.g. words), and output lines of processed token counts: `\cd{token   document|count}'.  The pre-tab item (our \cd{token}) is called a `key'.  Hadoop's sort facility uses these keys to send the output of your mappers to machines for the next step, reducers, ensuring that all instances of the same key (e.g., the same word) are grouped together at a single reducer.  The reducer then executes some operation that is independent-by-key, and the output is written to file (usually one file per reducer).
+
+Distributed MNIR fits nicely in the MR framework.  Our map step tokenizes your unstructured data  and organizes the output by token keys.  Reduce then takes all observations on a single token and runs a Poisson log regression, applying the gamma lasso with IC selection to obtain coefficient estimates.  These are used to build our SR scores, which can be employed in forward regression after the MR routine is done.  This recipe is detailed in Algorithm \ref{mralgo}.
+
+\vskip .2cm
+\begin{algorithm}[htb]
+\caption{\label{mralgo} Distributed MNIR }
+\vskip .25cm
+{\bf Map:}  For each document, tokenize and count sums for each token.  Save the total counts $m_i$ along with attribute information $\bm{v}_i$. Output \cd{token   document|count}.
+
+\vskip .25cm
+Combine totals $m_i$ and attributes $\bm{v}_i$ into a single table, say \cd{VM}. This info can be generated during map or extracted in earlier steps.  Cache \cd{VM} so it is available to your reducers.
+
+\vskip .25cm
+{\bf Reduce:} For each token key `$j$', obtain a regularization path for Poisson regression of counts $c_{ij}$ on attributes $\bm{v}_i$ with $\hat\mu_i = \log m_i$.  Apply AIC to select a segment of coefficients from this path, say $\bs{\hat\varphi}_j$, and output nonzero elements in sparse triplet format: \cd{word|document|count}. 
+
+\vskip .25cm
+Each reducer maintains a running total for SR projection, $\bm{z}_i \stackrel{+}{=} \bm{x}_i'\bs{\hat \varphi_j}/m_i$, output as say \cd{Z.r} for the $r^{th}$ reducer.  When all machines are done we aggregate \cd{Z.r} 
+to get the complete projections.  
+
+\vskip .25cm
+The final output is the $n \times K$ table \cd{Z} (or with $<K$ columns if you don't need all projection dimensions).  The framework is completed in forward regression with \cd{Z} and \cd{VM}. 
+\vskip .5cm
+\end{algorithm}
+
+
+
+We've written this as a single MR algorithm, but other variations may work better for your computing architecture. Our most common implementation uses streaming Hadoop on Amazon Web Services (AWS) to execute the map on a large number of files in AWS S3 cloud storage, but replaces the regression reduce step with a simple write, to solid state storage `midway' at the University of Chicago's Research Computing Center, of token counts tabulated by observation.  For example, given 64 reducer machines on AWS the result is 64 text tables on midway, with lines `\cd{word|doc|count}', each containing {\it all} nonzero counts for a subset of the vocabulary of tokens.  These files are small enough to fit in working memory\footnote{If not, use more reducers or split the files.} and can be analyzed on distinct compute nodes, each employing another layer of parallelization in looping through Poisson regression for each token.  This scheme is able to take advantage of Hadoop for fast tokenization of distributed data, and of
+high performance computing architecture (much faster than, say, a virtual AWS instance) for distributed  regression analyses.  This is a model that should work well for the many statisticians who have access to computing grids that are designed for high throughput tasks more traditionally associated with physics or chemistry.
 
 \sgl\small
-\bibliographystyle{chicago}
+\bibliographystyle{asa}
 \bibliography{dmr}
+
 
 \end{document}
