@@ -138,8 +138,7 @@ a two-part case study of publicly available Yelp online-review data.   Section
 \ref{YELP} considers prediction of review popularity (as scored by other Yelp
 users) from text and other attributes.  Section \ref{INFER} describes
 inference about the effect of user characteristics while conditioning on
-confounding information via text (and makes use of an additional scaling tool:
-the weighted least-squares approximation in Appendix \ref{WLS}). We've found
+confounding information via text. We've found
 that inference problems of this type are a key application area for MNIR.
 Section \ref{END} closes with a quick discussion.
 
@@ -560,41 +559,102 @@ high performance computing architecture (much faster than, say, a virtual AWS in
 \section{Yelp review popularity prediction}
 \label{YELP}
 
-\begin{table}[p]\vspace{-.5cm}
-\small\setstretch{1}
-\hspace{-1cm}
+\begin{table}[htb]\vspace{-.5cm}
+\footnotesize\setstretch{1}
+\hspace{-.25cm}
 \begin{tabular}{cll|r}
-& $\bs{\tau}$ & $\bs{\hat\varphi \neq 0}$ & {\bf top ten words by loading}\\
+& \small $\bs{\tau}$ & \small $\bs{\hat\varphi \neq 0}$ & \small {\bf top ten words by loading}\\
 \hline
- & 0 &  & \footnotesize  great love amaz favorite deliciou best awesome alway perfect excellent \\
-+stars & 2 & 8440 & \footnotesize  unmatch salute :-)) prik laurie pheonix trove banoffee exquisite sublime \\
- & 20 & 3077 & \footnotesize  heaven perfection gem divine amaz die superb phenomenal fantastic deliciousnes \\
- & 200 & 508 & \footnotesize  gem heaven awesome wonderful amaz fantastic favorite love notch fabulou \\
+ & 0 &  13938 & \footnotesize\it great love amaz favorite deliciou best awesome alway perfect excellent \\
+\small +stars & 2 & 8440 & \footnotesize\it  unmatch salute :-)) prik laurie pheonix trove banoffee exquisite sublime \\
+ & 20 & 3077 & \footnotesize\it  heaven perfection gem divine amaz die superb phenomenal fantastic deliciousnes \\
+ & 200 & 508 & \footnotesize\it  gem heaven awesome wonderful amaz fantastic favorite love notch fabulou \\
 \hline
- & 0 &  & \footnotesize  not worst ask horrib minut rude said told would didn \\
--stars & 2 & 8440 & \footnotesize  rude livid disrespect disgrace inexcusab grossest incompetent audacity unmelt acknowledge \\
- & 20 & 3077 & \footnotesize  rude incompetent unacceptab unprofessional inedib worst apology disrespect insult acknowledge \\
- & 200 & 508 & \footnotesize  worst horrib awful rude inedib terrib worse tasteles disgust waste \\
+ & 0 &  13938 & \footnotesize\it  not worst ask horrib minut rude said told would didn \\
+\small -stars & 2 & 8440 & \footnotesize\it  rude livid disrespect disgrace inexcusab grossest incompet audacity unmelt acknowledge \\
+ & 20 & 3077 & \footnotesize\it  rude incompet unaccept unprofession inedib worst apolog disrespect insult acknowledge \\
+ & 200 & 508 & \footnotesize\it  worst horrib awful rude inedib terrib worse tasteles disgust waste \\
 \hline
- & 0 &  & \footnotesize  you that know like your yelp ... what don who \\
-funny & 2 & 6508 & \footnotesize  dimsum rue reggae acne meathead roid bong crotch peni fart \\
- & 20 & 1785 & \footnotesize  bitch shit god dude boob idiot fuck hell drunk laugh \\
- & 200 & 120 & \footnotesize  bitch dear god hell face shit hipst dude man kidd \\
+ & 0 &  13938 & \footnotesize\it  you that know like your yelp ... what don who \\
+\small funny & 2 & 6508 & \footnotesize\it  dimsum rue reggae acne meathead roid bong crotch peni fart \\
+ & 20 & 1785 & \footnotesize\it  bitch shit god dude boob idiot fuck hell drunk laugh \\
+ & 200 & 120 & \footnotesize\it  bitch dear god hell face shit hipst dude man kidd \\
 \hline
- & 0 &  & \footnotesize  that yelp you thi know biz-photo like all http :// \\
-useful & 2 & 5230 & \footnotesize  fiancee rife dimsum maitre jpg poultry harissa bureau redirect breakdown \\
- & 20 & 884 & \footnotesize  biz-photo meow harissa www bookmark :-/ http :// (?), tip \\
- & 200 & 33 & \footnotesize  www http :// com factor already final immediate ask hope \\
+ & 0 & 13938 & \footnotesize\it  that yelp you thi know biz-photo like all http :// \\
+\small useful & 2 & 5230 & \footnotesize\it  fiancee rife dimsum maitre jpg poultry harissa bureau redirect breakdown \\
+ & 20 & 884 & \footnotesize\it  biz-photo meow harissa www bookmark :-/ http :// (?), tip \\
+ & 200 & 33 & \footnotesize\it  www http :// com factor already final immediate ask hope \\
 \hline
- & 0 &  & \footnotesize  yelp you that biz-photo http :// www know like your \\
-cool & 2 & 4031 & \footnotesize  boulder lewi rogue lagunita wanton celebratory hanker politic mozzerella onsite \\
- & 20 & 577 & \footnotesize  userid htm cen rand poem sultry arlin brimm cubic inspiration \\
- & 200 & 11 & \footnotesize  biz-photo select yelp along certain fil chose house  \\
+ & 0 &  13938 & \footnotesize\it  yelp you that biz-photo http :// www know like your \\
+\small cool & 2 & 4031 & \footnotesize\it  boulder lewi rogue lagunita wanton celebratory hanker politic mozzerella onsite \\
+ & 20 & 577 & \footnotesize\it  userid htm cen rand poem sultry arlin brimm cubic inspiration \\
+ & 200 & 11 & \footnotesize\it  biz-photo select yelp along certain fil chose house  \\
 \hline\end{tabular}
 \caption[l]{\label{topwords}
 Top 10 words by loading on review characteristics.\hfill}
-
 \end{table}
+
+
+
+\noindent
+\begin{figure}[htb]
+\begin{center}
+\framebox[0.95\textwidth]{
+\parbox{0.9\textwidth}{
+\vskip .5cm
+\setstretch{1.1} \small 
+{\bf Correlation matrices}
+
+\vskip .25cm
+~~~~~~\begin{tabular}{r|ccccr|cccc}
+ \multicolumn{4}{l}{\it attributes ($\bm{v}$)} & & 
+ \multicolumn{4}{l}{\it \hskip 2cm text projections ($\bm{z}$)} \\ 
+ %\multicolumn{10}{c}{}\\
+\multicolumn{1}{c}{}& f & u &c & $\star$ &  \multicolumn{1}{c}{}&f & u &c & $\star$\\
+\cline{2-5}\cline{7-10}
+funny &  1 &  0.7 &  0.8 &   0 & \hskip 2cm funny &  1 &  -0.1 &  -0.7 &  -0.4\\
+useful &  0.7 &  1 &  0.9 &   0 & \hskip 2cm useful &  -0.1 &  1 &  0.1 &  -0.2\\
+cool &  0.8 &  0.9 &  1 &   0 & \hskip 2cm cool &  -0.7 &  0.1 &  1 &  0.5\\
+stars &   0 &   0 &   0 &  1 & \hskip 2cm stars &  -0.4 &  -0.2 &  0.5 &  1\\
+\end{tabular}
+
+\vskip .5cm
+{\bf Funniest 50-100 word review, by $\bs{z_{\tt funny}}$.}
+
+\vskip .2cm
+{\it Dear La Piazza al Forno: We need to talk. I don't quite know how to say this so I'm just going to come out with it. I've been seeing someone else. How long? About a year now. Am I in love? Yes. Was it you? It was. The day you decided to remove hoagies from your lunch menu, about a year ago, I'm sorry, but it really was you...and not me.  Hey... wait... put down that pizza peel... try to stay calm... please? [Olive oil container whizzing past head] Please! Stop throwing shit at me... everyone breaks up on social media these days... or haven't you heard?  Wow, what a Bitch!}
+
+\vskip .5cm
+{\bf Most useful 50-100 word review, by $\bs{z_{\tt useful}}$.}
+
+\vskip .2cm
+{\it  We found Sprouts shortly after moving to town.  There's a nice selection of Groceries \& Vitamins.  It's like a cheaper, smaller version of Whole Foods.
+[biz-photo] [biz-photo] We shop here at least once a week.  I like their selection of Peppers....I like my spicy food! [biz-photo][biz-photo][biz-photo] Their freshly made Pizza isn't too bad either. [biz-photo] Overall, it's a nice shopping experience for all of us. Return Factor - 100\%}
+\vskip .5cm
+}}
+\end{center}
+\caption{Illustration of the information contained in sufficient projections
+$\bm{z}$, estimated under relative penalty weight $\tau=20$.  On top are
+correlation matrices for the original review attributes in $\bm{V}$ (left) and
+for $\bm{Z}$ (right) projection from the text onto these attributes.  We then
+show the reviews, amongst those where $m\in (50,100)$, with highest projection
+scores into the {\tt funny} and {\tt useful} attribute spaces.  Note that,
+since variance of $\bm{z}$ increases with $m$,   high scoring
+reviews tend to be longer.  One can also, as in \cite{taddy_multinomial_2013},
+normalize by length and work with $\bm{z}/m$.  On this scale, the funniest
+review is `{\it Holy Mother of God}' and the most useful review is `{\it Ask
+for Nick!}'.}
+\end{figure}
+
+\begin{table}\small
+\begin{tabular}{l|ccc}
+& Marginal & Conditional on non-text covariates & Adding and interacting text SR \\
+\cline{2-4}
+Effect estimate & 0.003 & 0.012 & 0.020
+\end{tabular}
+\caption{Estimated effect of user experience (log number of reviews) on number of stars above business average.  Each corresponds to different levels of confounder adjustment, increasing from left to right.}
+\end{table}
+This reduces our confounder dimension from around 5 million down to 12624.
 
 These data were supplied by the review site Yelp for a data mining contest on \cd{kaggle.com}.  Full details are at \cd{www.kaggle.com/c/yelp\!-\!recruiting/data}; we'll consider the business, user, and review datasets.  The reviews, of all sorts of businesses, were recorded on January 19, 2013 for a sample of locations in the southwest US (mostly around Phoenix AZ).  The goal of the competition was to predict the combined number of `funny', `useful', or `cool' (f/u/c) votes that a given review receives from other users.  Such information can be used by yelp to promote f/u/c  reviews before waiting for the users to grade them as such.  
 The example is typical of the problems we encounter in data mining, while it has the advantage that it is publicly available and not so large that we cannot -- for comparison -- also analyze and cross validate in-memory using a standard lasso.
@@ -816,13 +876,7 @@ the text information.
 Bootstrap sampling distributions for user characteristic coefficients under
 this augmented treatment-effects forward model  (regressing $y_i$ on
 $\bm{u}_i$, $\bm{z}_i^v$, and $\bm{z}_i^d$) are shown in Figure
-\ref{boots}.\footnote{To facilitate the repeated model fits required by in
-bootstrapping, these estimates are actually based on an even faster weighted
-least-squares approximation instead of the full Poisson inverse regressions.
-This procedure is detailed in Appendix \ref{WLS}, and reduces the time of an
-MNIR for this Yelp data to around 40 seconds on 64 16-core nodes, including
-data read and result write steps, from the 15 minutes required for an exact
-Poisson analysis.}  This is a standard sampling-with-replacement nonparametric
+\ref{boots}.  This is a standard sampling-with-replacement nonparametric
 bootstrap \citep[e.g.,][]{efron_missing_1994}, and both MNIR and forward
 regression are re-estimated in each bootstrap sample.  Figure \ref{boots} also
 includes standard MLE confidence intervals for coefficients on
@@ -854,8 +908,7 @@ The distribution of MNIR has opened the opportunity for it to be applied on a ne
 
 This advance is important for our applied work.  The collapsing of \cite{taddy_multinomial_2013} is useful in pure prediction problems, but today we more often find ourselves addressing inference questions  of the type in Section \ref{INFER}.  High dimensional attribute sets are essential for such problems because the MNIR model needs to believable. This is in contrast to pure prediction problems where, as outlined in \cite{taddy_rejoinder:_2013}, one can model IR misspecification during forward regression.  Moreover, in social science collaboration and in business settings we've found it very valuable to have available a large set of text projections that one can call upon as required.  
 
-Finally, the message of this paper has been that Poissson regression (or, via
-Appendix \ref{WLS}, even weighted least squares) enables fast and distributed
+Finally, the message of this paper has been that Poissson regression  enables fast and distributed
 algorithms for approximating multinomial distributions.  It has been pointed
 out to us that, in unstructured data analysis, a Poisson seems little more
 arbitrary than a multinomial model.  Equation (\ref{embed}) clarifies
@@ -868,56 +921,5 @@ unnecessary if you consider the Poisson a fine model in and of itself.
 \sgl\small
 \bibliographystyle{chicago}
 \bibliography{dmr}
-
-\appendix
-\dbl
-\normalsize
-
-\section{Weighted least squares approximation}
-\label{WLS}
-
-Weighted least squares (WLS) minimization works well with Big data.  Because the effect of a coefficient change on the likelihood gradient depends only on the covariances between covariates, one can pre-calculate $\bm{X}'\bm{X}$, where $\bm{X}$ is your matrix of covariates, and never again bother summing over the $n$ observations.
-Our use of an IRLS algorithm for estimating Poisson log regressions (Section \ref{GL}) begs the question: can we fix the weights? 
-
-The Poisson regression model for $c_i$ has intensities $e^{\eta_{i}}$, suppressing response-category subscript $j$. Then
- $\bs{\eta} = [\eta_{1} \ldots \eta_{n}]$ is our estimation target,
-with likelihood Hessian matrix $\bm{H} = \mr{diag}(e^{\eta_{i}})$.
-Expand a second order Taylor series around the saturated model $\hat\eta_{i}
-= \log(c_{i})$ (so the gradient disappears) to get the approximate negative
-log likelihood 
-\begin{equation}
-l(\bs{\eta}) = (\bs{\eta} - \log\bm{c})'
-\mr{diag}( \bm{c} )(\bs{\eta} - \log\bm{c}). 
-\end{equation} 
-Writing $\bs{\eta}$
-out in terms of our fixed-effects regression model yields the approximate
-Poisson negative log LHD objective $\sum_i c_{i}(\alpha +
-\bm{v}_i'\bs{\varphi} - \log(c_{i}/m_i))^2$, a sum of squares with weights $c_{i}$ ($=c_{ij}$ for each response $j$). This formula will not work in application due to all of the zero values $c_i$, but we can add a small buffer term $\zeta > 0$ to get the {\it WLS Poisson approximation}
-\begin{equation}\label{wls}
-l(\alpha, \bs{\varphi}) = \sum_i \omega_i
-\left[\alpha_j + \bm{v}_i'\bs{\varphi} - \log(\omega_i/m_i)\right]^2, ~~\text{where}~~\omega_i = c_i + \zeta.
-\end{equation}
-Effect of $\zeta$ is clearest around $c_i = 0$: as the buffer decreases, the weights $\omega_i$ get smaller while the distance from `response' $\log(\omega_i/m_i)$ to that for $c_i=1$, $\log( [1+\zeta]/m_i )$, gets larger.
-
-\begin{figure}
-\includegraphics[width=6.5in]{../graphs/wlscompare}
-\caption{\label{wlspic} {\it Yelp.} Weighted least squares approximation.  The left plot shows correlation between  Poisson coefficient estimates and the WLS values, as a function of buffer $\zeta$. At marked $\zeta=e^{-3}\approx 1/20$, the center graph plots the estimated values under each method against each other and the right panel shows projection onto two vote categories (useful and cool overlap very closely, so we've left cool unplotted).}
-\end{figure}
-
-
-The left panel of Figure \ref{wlspic} shows correlation  between  MNIR
-$\bs{\hat\Phi}$ estimates obtained, after AIC model selection,  from a Poisson
-likelihood and from our WLS approximation.  The fits are impressively close,
-especially given that this involves  selection after estimation, with a
-maximum correlation of $0.94$ at $\zeta=0.05$.  The center panel shows that
-there are systematic discrepancies:  WLS estimates are attenuated,
-and some big negative $\hat\varphi_{ij}$ estimates from the Poisson fit are
-thresholded around $-7$ in WLS.  However, the right plot shows that this does
-not necessarily carry into the implied SR projections. Of primary importance,
-OOS predictability for MNIR is practically unchanged.  Cross validation with
-$\zeta=0.05$ for the Yelp example from Section \ref{YELP}, in the same
-experiment of Figure \ref{yelp_cv}, yields OOS $R^2$  values of
-0.454 for a linear forward model and 0.520 for a random forest -- only 0.001
-lower than for the exact likelihood.
 
 \end{document}
