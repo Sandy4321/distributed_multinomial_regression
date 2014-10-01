@@ -65,14 +65,14 @@
 computing for multinomial logistic regression. We treat
 counts for each response category as independent Poisson regressions
 via plug-in estimates for fixed effects shared across categories.  The work is
-driven by estimation of the high-dimensional-response multinomial models that
+driven by the high-dimensional-response multinomial models that
 arise in analysis of a large number of random counts. Our archetypal
-applications are in text analysis, where large sets of documents are tokenized
+applications are in text analysis, where documents are tokenized
 and the token counts are modeled as arising from a  multinomial dependent upon
 document attributes. We estimate such models for a publicly available dataset
-of business reviews from the Yelp website, with review text regressed onto a
+of reviews from Yelp, with text regressed onto a
 large set of explanatory variables (user, business, and rating information).
-The fitted models then serve as a basis for exploring the connection between
+The fitted models serve as a basis for exploring the connection between
 words and variables of interest (e.g., star rating), for reducing dimension
 into supervised factor scores, and for prediction. }
  
@@ -86,11 +86,89 @@ into supervised factor scores, and for prediction. }
 \label{intro}
 
 
-The idea is motivated by applications that involve very large response
-dimension $D$,  as in multinomial analysis of text counts or other large
-categorical datasets (e.g. website visits or consumer purchases).  In
-particular, we'll apply the technique to the multinomial inverse regression
-(MNIR) of \citet{taddy_multinomial_2013}.  In the original MNIR paper, the
+This article is motivated by datasets that include {\it counts} in a massive
+number of {\it categories}, such as text corpora (counts for words), browser
+logs (counts on websites), and website tracking (counts of clicks). The unit
+upon which counts are observed -- e.g., a `document' for text or a `user' in
+web analysis -- is annotated with {\it attributes}, additional information
+about each document (author, date, etc) or user (age, purchases, etc).  Much
+of contemporary Big Data analysis involves some exploration, inference, and
+prediction of, or controlling for, the relationship between these attributes
+and the associated very-high-dimensional counts.
+
+
+Say $\bm{c}_i$ is a vector of counts in $d$ categories, summing to $m_i =
+\sum_j c_{ij}$, accompanied by a $p$-dimensional attribute vector $\bm{v}_i$ on observation
+unit $i$.  For example, in the archetypal text mining application, $\bm{c}_i$
+are counts for words in document $i$ annotated with metadata $\bm{v}_i$.   We
+connect attributes and counts through a big multinomial logistic regression
+model,
+\begin{equation}\label{bigmn}
+\mr{p}(\bm{c}_{i} | \bm{v}_i,m_i) = 
+\mr{MN}\left(\bm{c}_i;~\bs{\lambda}_{i}/\Lambda_i,
+~m_i\right),~~\text{where}~~\lambda_{ij} = \exp[\alpha_j + \bm{v}_i'\bs{\varphi}_j]~~\text{and}~~\Lambda_i = \sum_{j=1}^d\lambda_{ij}.
+ \end{equation} 
+ This model can be computationally expensive to estimate for a large number of
+ response categories (i.e., big $\bm{c}_i$ dimension $d$).  Even a single
+ likelihood evaluation is costly, due to the sum required for each
+ normalizing {\it intensity} $\Lambda_i$. The methodological innovation of the
+ current article is to replace $\Lambda_i$ with initial estimates,
+ then condition upon these plug-ins when estimating (\ref{bigmn})
+ through $d$ individual Poisson regressions for counts in each category $j$.
+ This model-based factorization allows one to {\it partition} computation
+ across many independent machines, so with enough processors the system
+ of (\ref{bigmn}) is fit in the time required for a single Poisson regression.
+
+We refer to this framework as {\it distributed multinomial regression}, or DMR.
+Our work here extends ideas from \cite{taddy_multinomial_2013}, which
+introduced the strategy of {\it multinomial inverse regression} (MNIR).  That
+article argues for estimation of models like (\ref{bigmn}) as the first step
+in an inverse regression routine for predicting elements of $\bm{v}$.
+However, \cite{taddy_multinomial_2013} relies upon a fitting algorithm that
+collapses response counts across equal $\bm{v}_i$, and hence scales {\it only}
+for a small number of attributes (i.e., when $p$ is just one or two). That
+article is also focused exclusively on applications in attribute prediction.
+The purpose of the current article is thus two-fold: to supply techniques for
+estimation when both $\bm{c}$ and $\bm{v}$ are high dimensional, and to
+illustrate how these models can be useful in many aspects of analysis and
+inference.
+
+Much of the paper is devoted to an example analysis of reviews on Yelp -- an
+Internet platform for feedback on various establishments, including
+restaurants, barbers, schools and much else.  This dataset has a rich feature
+set associated with a wide variety of reviews. The data are also publicly
+available, after (free) registration on the data mining contest website
+\cd{kaggle.com}. 
+Moreover, our technology is provided in the \cd{distrom} package for R and
+ Yelp analysis code is cataloged at \cd{github.com/mataddy/yelp}.  Public
+access is essential here: our goal is to provide a
+complete template for analysis of high-dimensional count data.
+
+Our estimation strategy is detailed in Section \ref{methods}, including model
+factorization, plug-ins for $\Lambda_i$, and regularization
+path estimation within each parallel regression. The methods
+are illustrated in the short classification example of Section
+\ref{FGL}, which shows utility for DMR not only in
+big $d$ but also as a speedup for log $d$ multinomial regressions. Finally,
+Section \ref{YELP} runs through our full Yelp example, detailing model
+estimation and a variety of analysis applications.
+\begin{itemize}\sgl
+\item 
+Exploration: what words are associated with funny or useful content?
+\item Dimension reduction: which reviews have the most funny or useful content?
+\item Prediction: what will be the usefulness or hilarity of a new review? 
+\item Inference: does user experience lead to higher star ratings?
+\end{itemize}
+All of this is built upon {\it partial effects}:  connections
+between text and attributes that arise  after controlling for
+collinearity between attributes.  Section \ref{END} closes with a short
+discussion.
+
+
+\section{Methods: Estimation in Distribution}
+\label{methods}
+
+In the original MNIR paper, the
 covariate dimension $p$ was small and computation was made extremely fast by
 collapsing response counts across level combinations of these  covariates.
 DMR extends MNIR to high-dimensional covariate sets where such collapsing is
@@ -117,16 +195,6 @@ multinomial regression: even with small-$D$ response
 categories, you'll be able to fit the model almost $D$ times faster in
 distribution (in simple shared-memory parallelization we observe speedups that
 are close to linear in $D$, depending upon machine architecture).
-
-The body of this article starts in Section \ref{MU} with justification of our
-plug-in estimator $\hat \mu_i = \log m_i$.  We then review in Section \ref{GL}
-penalized estimation and our use of the gamma lasso regularization path
-algorithm.  This is followed in \ref{IC} with discussion of coefficient
-selection along these regularization paths.  This can either occur on the
-basis of the independent Poisson likelihoods, or back on the grouped
-multinomial likelihood.  We then break from methodology in Section \ref{M1}
-for two simple polychotomous regression examples -- the small forensic glass
-data from \cd{R} and a large panel of American light beer purchases.
 
 The second part of the paper begins in Section \ref{MNIR} with an overview of
 the MNIR framework of \cite{taddy_multinomial_2013}.  This includes an updated
@@ -263,15 +331,14 @@ for robustness.  A very common form in statistics is the lasso
 cost function.  The lasso (and other costs with a spike at zero) yield
 variable selection: some coefficient estimates will be set to exactly zero.
 
-As the optimal value of $\lambda$ is unknown and must be selected (see Section
-\ref{IC} below), efficient implementations of penalized estimation use path
-algorithms.  In a `regularization path', one starts at $\lambda_1$ large
-enough such that the solution has $\hat\varphi_j=0$ for all $j$.  The penalty
-weight is then incrementally decreased and coefficients are updated
-accordingly. Since the estimates corresponding to $\lambda_t$ tend to be good
-starts for estimation at $\lambda_{t+1}$, such routines are extremely fast
-(and a path along, say, 100 $\lambda_t$ values can take less time then solving
-for the MLE once).
+As the optimal value of $\lambda$ is unknown and must be selected, efficient
+implementations of penalized estimation use path algorithms.  In a
+`regularization path', one starts at $\lambda_1$ large enough such that the
+solution has $\hat\varphi_j=0$ for all $j$.  The penalty weight is then
+incrementally decreased and coefficients are updated accordingly. Since the
+estimates corresponding to $\lambda_t$ tend to be good starts for estimation
+at $\lambda_{t+1}$, such routines are extremely fast (and a path along, say,
+100 $\lambda_t$ values can take less time then solving for the MLE once).
 
 We will adopt the gamma lasso (GL) approach of
 \citet{taddy_gamma_2013}.  That article outlines a simple path
@@ -300,10 +367,6 @@ A full overview of GL estimation is in the original paper, along with a
 general review of concave penalization.  A central theme of the article is
 that  one needs to understand the properties of the entire path in order to
 pick a single point estimate, $\bs{\varphi}^t$.
-
-
-\subsection{Selection via Information Criteria}
-\label{IC}
 
 Penalized path estimation is a tool for enumerating a set of candidate models:
 all those along the grid $\lambda_1 \ldots \lambda_T$.  Think of the weights
@@ -342,15 +405,12 @@ Note that IC model selection is somewhat nonstandard  -- cross validation
 (CV), the procedure of looping over out-of-sample (OOS) prediction on 
 left-out folds (subsets) of your data, is probably more common.  We focus on IC here, and use CV only for validation of our various IC techniques, because the intent of the work is to offer massive scalability. Monte Carlo routines require significant extra time and communication overhead (plus thread-safe random number generation).  However, there is  nothing inherently wrong with CV selection in DMR; we hypothesize that CV rules applied to each independent Poisson regression will do very well.
 
-\section{Polychotomous regression examples}
-\label{M1}
+\section{Polychotomous classification: glass shards}
+\label{FGL}
 
 Before moving to big-$D$, MNIR, and our Yelp case study, we look at the
 (surprisingly strong) performance of DMR in simple $m_i=1$ polychotomous
 regression.
-
-\subsection{Glass shards}
-\label{FGL}
 
 
 \begin{figure}
@@ -362,7 +422,8 @@ regression.
 \end{figure}
 
 \begin{figure}
-\includegraphics[width=3in]{../graphs/fgl_mu}
+\hskip 3cm\includegraphics[width=3in]{../graphs/fgl_mu}
+\caption{\label{fgl_mu} {\it Forensic Glass}.  Distribution of the implied conditional MLE for $\hat{\mu}_i = -\log \sum_j \hat\lambda_{ij}$.  \\Our Poisson model uses the fixed estimate $\hat\mu_i = 0$ for all $i$. }
 \end{figure}
 
 Our first illustration uses the small `forensic glass' dataset from
@@ -612,14 +673,13 @@ for Nick!}'.}
 \begin{tabular}{l|ccc}
 & Marginal & Conditional on non-text covariates & Adding and interacting text SR \\
 \cline{2-4}
-Effect estimate & 0.003 & 0.012 & 0.020
+Effect estimate & 0.003 & 0.015 & 0.019
 \end{tabular}
 \caption{Estimated effect of user experience (log number of reviews) on number of stars above business average.  Each corresponds to different levels of confounder adjustment, increasing from left to right.}
 \end{table}
 This reduces our confounder dimension from around 5 million down to 12624.
 
 These data were supplied by the review site Yelp for a data mining contest on \cd{kaggle.com}.  Full details are at \cd{www.kaggle.com/c/yelp\!-\!recruiting/data}; we'll consider the business, user, and review datasets.  The reviews, of all sorts of businesses, were recorded on January 19, 2013 for a sample of locations in the southwest US (mostly around Phoenix AZ).  The goal of the competition was to predict the combined number of `funny', `useful', or `cool' (f/u/c) votes that a given review receives from other users.  Such information can be used by yelp to promote f/u/c  reviews before waiting for the users to grade them as such.  
-The example is typical of the problems we encounter in data mining, while it has the advantage that it is publicly available and not so large that we cannot -- for comparison -- also analyze and cross validate in-memory using a standard lasso.
 
 After removing reviews by unknown users, the data are $n=$ 215,879 reviews on
 11,537 businesses by 43,873 users. Business-specific covariates include review-
