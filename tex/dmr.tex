@@ -108,16 +108,18 @@ model,
 \mr{MN}\left(\bm{c}_i;~\bs{\lambda}_{i}/\Lambda_i,
 ~m_i\right),~~\text{where}~~\lambda_{ij} = \exp[\alpha_j + \bm{v}_i'\bs{\varphi}_j]~~\text{and}~~\Lambda_i = \sum_{j=1}^d\lambda_{ij}.
  \end{equation} 
- This model can be computationally expensive to estimate for a large number of
- response categories (i.e., big $\bm{c}_i$ dimension $d$).  Even a single
- likelihood evaluation is costly, due to the sum required for each
- normalizing {\it intensity} $\Lambda_i$. The methodological innovation of the
- current article is to replace $\Lambda_i$ with initial estimates,
- then condition upon these plug-ins when estimating (\ref{bigmn})
- through $d$ individual Poisson regressions for counts in each category $j$.
- This model-based factorization allows one to {\it partition} computation
- across many independent machines, so with enough processors the system
- of (\ref{bigmn}) is fit in the time required for a single Poisson regression.
+ The multinomial denoted $\mr{MN}$ here has, for unit $i$, category $j$ probability
+$\lambda_{ij}/\Lambda_i$ and size $m_i$. This model can be computationally
+expensive to estimate for a large number of response categories (i.e., big
+$\bm{c}_i$ dimension $d$).  Even a single likelihood evaluation is costly, due
+to the sum required for each normalizing {\it intensity} $\Lambda_i$. The
+methodological innovation of the current article is to replace $\Lambda_i$
+with initial estimates, then condition upon these plug-ins when estimating
+(\ref{bigmn}) through $d$ individual Poisson regressions for counts in each
+category $j$. This model-based factorization allows one to {\it partition}
+computation across many independent machines, so with enough processors the
+system of (\ref{bigmn}) is fit in the time required for a single Poisson
+regression.
 
 We refer to this framework as {\it distributed multinomial regression}, or DMR.
 Our work here extends ideas from \cite{taddy_multinomial_2013}, which
@@ -168,64 +170,21 @@ discussion.
 \section{Methods: Estimation in Distribution}
 \label{methods}
 
-In the original MNIR paper, the
-covariate dimension $p$ was small and computation was made extremely fast by
-collapsing response counts across level combinations of these  covariates.
-DMR extends MNIR to high-dimensional covariate sets where such collapsing is
-infeasible.  Beyond MNIR, other authors working in web and text analysis who
-previously favored multinomial models -- say, for latent factorization -- are
-now using independent Poissons to scale for massive data; see
-\citet{gopalan_scalable_2013} as an example.  From the perspective of this
-paper, such Poisson modeling strategies can be cast as Big data versions of
-their more common multinomial analogues.
-
-These big-$D$ applications have the characteristic that $m_i$ is
-random, and usually pretty big.  For example, text mining $m_i$ is the total
-word count in document $i$, and web analysis $m_i$ would be the total count of
-sites visited by a browser.  A Poisson model for $m_i$ -- the extra assumption
-made when moving from a multinomial to independent Poissons -- is not far
-fetched, especially if $\bm{v}_i$ includes a large number of covariates and
-fixed effects.  However, we also find that DMR does very well for the more
-common polychotomous regression setting, where $m_i=1$ always.   In our
-polychotomous examples, DMR with lasso penalization and under variety of
-selection rules performs at least as well in out-of-sample prediction as a
-cross validated lasso on the corresponding multinomial logistic regression
-model.  DMR thus provides an every-day speedup in
-multinomial regression: even with small-$D$ response
-categories, you'll be able to fit the model almost $D$ times faster in
-distribution (in simple shared-memory parallelization we observe speedups that
-are close to linear in $D$, depending upon machine architecture).
-
-The second part of the paper begins in Section \ref{MNIR} with an overview of
-the MNIR framework of \cite{taddy_multinomial_2013}.  This includes an updated
-discussion of the opportunities opened if we allow for larger $D$ than was
-considered in the original paper.  Section \ref{MR} provides a MapReduce
-algorithm for distributed MNIR in analysis of Big unstructured
-datasets.   Finally, we present in Sections \ref{YELP} and \ref{INFER} 
-a two-part case study of publicly available Yelp online-review data.   Section
-\ref{YELP} considers prediction of review popularity (as scored by other Yelp
-users) from text and other attributes.  Section \ref{INFER} describes
-inference about the effect of user characteristics while conditioning on
-confounding information via text. We've found
-that inference problems of this type are a key application area for MNIR.
-Section \ref{END} closes with a quick discussion.
-
-\section{Estimating baseline intensity}
-\label{MU}
-
-The likelihood for count data from a set of $D$ independent Poisson trials
-factorizes as the product of a multinomial distribution for the individual
-counts conditional on the sum total across all trials and a Poisson
-distribution on this total.  Say $\bm{c}_i$ is a vector of counts in $D$
-categories, summing to $m_i = \sum_j c_{ij}$, and that each $c_{ij}$ has
-been drawn independently $\mr{Po}\left(\lambda_{ij}\right)$ -- Poisson with
-intensity (i.e., mean) $\lambda_{ij}$. Then the multinomial is `embedded' in
-the Poisson: \begin{equation}\label{embed} \mr{p}(\bm{c}_{i}) = \prod_j
+For convenience, we'll adopt terminology from text analysis for the remainder
+and refer to each unit $i$ as a `document' and each category $j$ as a
+`word'.\footnote{Even in text mining this is a simplification; each $j$ could
+be a combination of words or any other language token.} Suppose that every
+document-word count $c_{ij}$ has been drawn independently
+$\mr{Po}\left(\lambda_{ij}\right)$ -- Poisson with intensity (i.e., mean)
+$\lambda_{ij}$. The joint document likelihood, for $\bm{c}_i$, then factorizes as the
+product of a multinomial distribution for  individual counts conditional on
+ total count $m_i$ and a Poisson distribution $m_i$.
+That is, the multinomial is `embedded' in the Poisson as
+\begin{equation}\label{embed} \mr{p}(\bm{c}_{i}) = \prod_j
 \mr{Po}\left(c_{ij};~\lambda_{ij}\right) =
 \mr{MN}\left(\bm{c}_i;~\bs{\lambda}_{i}/\Lambda_i,
-~m_i\right)\mr{Po}\left(m_i;~\Lambda_i\right), \end{equation} where $\Lambda_i
-= \sum_j \lambda_{ij}$ and the multinomial denoted here has probabilities
-$\lambda_{ij}/\Lambda_i$ and size $m_i$.
+~m_i\right)\mr{Po}\left(m_i;~\Lambda_i\right). 
+\end{equation}
 
 This well known connection has long been used by statisticians to justify
 ignoring whether sampling was conditional on margin totals in analysis of
@@ -245,15 +204,20 @@ Poisson model is estimated at its conditional MLE, $\hat \mu_i =
 
 Traditionally, this connection is invoked when applying multinomial logistic
 regression: totals $m_i$ are then ancillary and the $\mu_i$ drop out of the
-likelihood.  This paper takes the opposite view: if we are willing to fix
-estimates $\hat\mu_i$ -- potentially not at their MLE -- then the factorized
-Poisson likelihood can be analyzed independently across response categories.
-Specifically, Section \ref{MU} argues for $\hat\mu_i = \log m_i$ as a plug-in
-estimator that minimizes the bias from using Poisson likelihoods in place of a
-multinomial for log linear regression. We label this strategy, including
-penalized estimation and variable selection within each Poisson, distributed
-multinomial regression (DMR).  It is available in the \cd{distrom} package for
-\cd{R}.
+likelihood.  Our DMR framework takes the opposite view: if we are willing to
+fix estimates $\hat\mu_i$ -- potentially not at their MLE (we will argue for
+$\hat\mu_i = \log m_i$) -- then the factorized Poisson likelihood can be
+analyzed independently across response categories. As highlighted in the
+introduction, this yields distributed computing algorithms for estimation
+on previously impossible scales.  Indeed, we have observed in text and web
+analysis a recent migration from multinomial models -- say, for latent
+factorization -- to Poisson model schemes; see
+\citet{gopalan_scalable_2013} as an example.  From the perspective of this
+article, such strategies are Big data approximations to their
+multinomial precursors.
+
+\subsection{Conditionally independent estimation}
+
 Consider multinomial logistic regression with linear equations $\eta_{ij} =
 \alpha_{j} + \bm{v}_i'\bs{\varphi}_j$ for each observation $i$ and response
 category $j$.  The negative log likelihood is proportional to 
@@ -275,6 +239,11 @@ observation `baseline intensities'.  As mentioned above, solution for the
 parameters of $\eta_{ij}$ is unchanged between (\ref{mnl}) and (\ref{pol}) if
 each $\mu_i$ is set to its conditional MLE at $\log m_i - \log \left[\sum_j
 e^{\eta_{ij}}\right]$.
+
+
+\subsection{Estimating baseline intensity}
+\label{MU}
+
 
 Calculating conditional MLE for baseline intensities $\mu_i$ requires
 communication across category dimensions `$j$'. Since distributed computation
@@ -411,6 +380,24 @@ left-out folds (subsets) of your data, is probably more common.  We focus on IC 
 Before moving to big-$D$, MNIR, and our Yelp case study, we look at the
 (surprisingly strong) performance of DMR in simple $m_i=1$ polychotomous
 regression.
+
+
+These big-$d$ applications have the characteristic that $m_i$ is
+random, and usually pretty big.  For example, text mining $m_i$ is the total
+word count in document $i$, and web analysis $m_i$ would be the total count of
+sites visited by a browser.  A Poisson model for $m_i$ -- the extra assumption
+made when moving from a multinomial to independent Poissons -- is not far
+fetched, especially if $\bm{v}_i$ includes a large number of covariates and
+fixed effects.  However, we also find that DMR does very well for the more
+common polychotomous regression setting, where $m_i=1$ always.   In our
+polychotomous examples, DMR with lasso penalization and under variety of
+selection rules performs at least as well in out-of-sample prediction as a
+cross validated lasso on the corresponding multinomial logistic regression
+model.  DMR thus provides an every-day speedup in
+multinomial regression: even with small-$D$ response
+categories, you'll be able to fit the model almost $D$ times faster in
+distribution (in simple shared-memory parallelization we observe speedups that
+are close to linear in $D$, depending upon machine architecture).
 
 
 \begin{figure}
