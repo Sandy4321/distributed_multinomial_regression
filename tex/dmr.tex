@@ -146,7 +146,7 @@ Moreover, our technology is provided in the \cd{distrom} package for R and
 access is essential here: our goal is to provide a
 complete template for analysis of high-dimensional count data.
 
-Our estimation strategy is detailed in Section \ref{methods}, including model
+The estimation strategy is detailed in Section \ref{methods}, including model
 factorization, plug-ins for $\Lambda_i$, and regularization
 path estimation within each parallel regression. The methods
 are illustrated in the short classification example of Section
@@ -196,8 +196,11 @@ extends the theory to log-linear regression with $\lambda_{ij} = \exp[\alpha_j
 + \mu_i + \bs{\varphi}_j'\bm{v}_i]$, showing that the Fisher information on
   regression coefficients is the same regardless of whether or not you've
   conditioned on $m_i$  so long as $\mu_i$ in the Poisson model is estimated
-  at its conditional MLE, $\hat \mu_i =
-\log\left(m_i/\sum_j e^{\alpha_j + \bs{\varphi}_j\bm{v}_i}\right)$.  
+  at its conditional MLE, 
+ \begin{equation} \label{mlemu}
+  \mu_i^\star =
+\log\left(m_i/\sum_j e^{\alpha_j + \bm{v}_i'\bs{\varphi}_j}\right).  
+\end{equation}
 
 Most commonly, (\ref{embed}) is invoked when applying multinomial logistic
 regression: totals $m_i$ are then ancillary and the $\mu_i$ drop out of the
@@ -216,13 +219,16 @@ latent factorization -- to Poisson model schemes; see
 article, such strategies are Big data approximations to their
 multinomial precursors.
 
-\subsection{Conditionally independent estimation}
 
-Consider multinomial logistic regression with linear equations $\eta_{ij} =
-\alpha_{j} + \bm{v}_i'\bs{\varphi}_j$ for each observation $i$ and response
-category $j$.  The negative log likelihood is proportional to 
+\subsection{Estimating baseline intensity}
+\label{MU}
+
+Parametrize the multinomial logistic regression model in (\ref{bigmn}) through
+natural parameters $\eta_{ij} =
+\alpha_{j} + \bm{v}_i'\bs{\varphi}_j = \log\lambda_{ij}$.  Then the negative
+log likelihood is proportional to
 \begin{equation}
-\label{mnl} \sum_{i=1}^n\left[ m_i\log\left(\sum_{j=1}^D e^{\eta_{ij}}\right)
+\label{mnl} \sum_{i=1}^n\left[ m_i\log\left(\sum_{j=1}^d e^{\eta_{ij}}\right)
 - \bm{c}_{i}'\bs{\eta}_{i} \right]. 
 \end{equation} 
 It is easy to verify that adding observation fixed effects $\mu_i$ to each
@@ -230,149 +236,143 @@ $\eta_{ij}$ in (\ref{mnl}) leaves the likelihood unchanged.  In contrast, the
 corresponding Poisson model, unconditional on $m_i$, has negative log
 likelihood proportional to 
 \begin{equation} \label{pol}
-\sum_{j=1}^D\sum_{i=1}^n\left[ e^{\mu_i + \eta_{ij}} - c_{ij}(\mu_i +
+\sum_{j=1}^d\sum_{i=1}^n\left[ e^{\mu_i + \eta_{ij}} - c_{ij}(\mu_i +
 \eta_{ij}) \right] 
 \end{equation} 
 with gradient on each $\mu_i$ of $g(\mu_i) =
 e^{\mu_i}\sum_j e^{\eta_{ij}} - m_i$, and  is clearly sensitive to these
 observation `baseline intensities'.  As mentioned above, solution for the
 parameters of $\eta_{ij}$ is unchanged between (\ref{mnl}) and (\ref{pol}) if
-each $\mu_i$ is set to its conditional MLE at $\log m_i - \log \left[\sum_j
-e^{\eta_{ij}}\right]$.
+each $\mu_i$ is set to its conditional MLE in (\ref{mlemu}).
+
+Unfortunately, if our goal is to {\it separate} inference for $\bs{\varphi}_j$
+across different $j$, the MLE formula of (\ref{mlemu}) will create a
+computational bottleneck: each category-$j$ Poisson regression requires
+updates to $\bs{\mu}^\star = [\mu^\star_1 \ldots \mu^\star_n]'$ during
+estimation.  Distributed computation precludes such communication, and
+we instead use the simple plug-in estimator
+\begin{equation}\label{plugin}
+\hat \mu_i = \log m_i.
+\end{equation}
+ We'll justify this choice as optimal in a few simple models, and rely upon
+  empirical evidence to claim it performs well in more complex
+  settings.\footnote{ Note that, when compared to (\ref{mlemu}), the plug-in
+  replaces $\sum_j e^{\alpha_j
++ \bm{v}_i'\bs{\varphi}_j} = 1$.  Adding a constant to each
+  $\alpha_j$ leaves probabilities unchanged, so this can be made to hold without
+  affecting fit.}  
 
 
-\subsection{Estimating baseline intensity}
-\label{MU}
-
-
-Calculating conditional MLE for baseline intensities $\mu_i$ requires
-communication across category dimensions `$j$'. Since distributed computation
-precludes such communication, we'll instead use  $\hat \mu_i = \log m_i$ as a
-simple plug-in estimator. Conceptually, we justify this choice being also the
-conditional Poisson MLE -- the value that would lead  Poisson estimates for
-$\eta_{ij}$ to be unchanged from those based on the  joint multinomial
-likelihood  -- in a few example models.
-
-From (\ref{pol}), the gradient on $\mu_i$ at this plug-in is $g(\hat \mu_i) =
-m_i \left(\sum_i e^{\eta_{ij}}-1\right)$.  Consider a saturated model where
-each $\eta_{ij}$ is free.  The Poisson MLE for $\eta_{ij}$ will be $\hat
-\eta_{ij} = \log(c_{ij}) - \hat \mu_i = \log(c_{ij}/m_i)$, which gives $g(\hat
-\mu_i) = 0$ and this value also minimizes the multinomial likelihood in (\ref{mnl}).   At
-the other extreme, consider an intercept-only model with $\eta_{ij} =
-\alpha_j$.  The Poisson MLE is $\hat\alpha_j = \log \sum_i c_{ij} - \log
+The gradient of the Poisson likelihood in (\ref{pol}) on $\mu_i$ at our
+plug-in is $g(\hat \mu_i) = m_i \left(\sum_i e^{\eta_{ij}}-1\right)$.  
+Define the plug-in MLEs $\bs{\hat\eta}_{i}
+  = [\hat\eta_{i1}\ldots\hat\eta_{id}]'$ as those which minimize the Poisson
+  objective in (\ref{pol}) under $\mu_i=\hat\mu_i$.  Then in the
+three simple settings below, $g(\hat
+\mu_i)=0$ for $\bs{\eta}_i = \bs{\hat\eta}_{i}$. This implies that $\hat\mu_i$
+is actually on the joint MLE, and thus that $\{\bs{\hat\eta}_{i},\hat\mu_i\}$ minimize the
+ Poisson objective in (\ref{pol}) while $\{ \bs{\hat\eta}_{i}\}$ minimizes the logistic multinomial objective in (\ref{mnl}).
+\begin{itemize}
+\item In a saturated model, with
+each $\eta_{ij}$ free, $\hat
+\eta_{ij} = \log(c_{ij}) - \hat \mu_i = \log(c_{ij}/m_i)$ and $g(\hat
+\mu_i) = 0$.
+\item With intercept-only $\eta_{ij} =
+\alpha_j$, the Poisson MLE is $\hat\alpha_j = \log \sum_i c_{ij} - \log
 \sum_i e^{\hat\mu_i} = \log\left( \sum_i c_{ij}/M \right)$ where $M = \sum_i
-m_i$.  The gradient is $g(\hat \mu_i) = m_i(\sum_j \sum_i c_{ij}/M -1) =
-0$ so that we are again at the conditional MLE. Finally, consider a single
-binary covariate such that $\eta_{ij} = \alpha_j + x_i \varphi_j$, $x_i \in
-\{0,1\}$.  Write $C_{xj} = \sum_{i: x_i=x} c_{ij}$ and  $M_{x} = \sum_{i:
+m_i$, and $g(\hat \mu_i) = m_i(\sum_j \sum_i c_{ij}/M -1) = 0$.
+\item Consider a single
+$x_i \in
+\{0,1\}$ such that $\eta_{ij} = \alpha_j + x_i \varphi_j$.  Write $C_{xj} = \sum_{i: x_i=x} c_{ij}$ and  $M_{x} = \sum_{i:
 x_i=x} m_i = \sum_j C_{xj}$.  Then the Poisson MLE are $\hat\alpha_j =
 \log(C_{0j}/M_0)$ and $\hat\varphi_j = \log(C_{1j}/M_1) - \log(C_{0j}/M_0)$,
-so that we retain $g(\hat \mu_i) = m_i\left(\sum_j C_{x_ij}/M_{x_i} -1 \right)
-=0$.
+so that  $g(\hat \mu_i) = m_i\left(\sum_j C_{x_ij}/M_{x_i} -1 \right) =0$.
+\end{itemize}
+Of course, these examples do not form a general result: the situation is more
+complicated with correlated covariates or under regularization. But they
+illustrate analytically why we might expect the performance we've seen
+empirically: estimates based upon $\hat \mu_i = \log m_i$ do not suffer in
+out-of-sample validation. The resulting benefit is huge, as using a plug-in
+allows estimation of the Poisson regression equations to proceed in complete
+isolation from each other.
 
-These examples do not form a general result (things are more complicated with multiple correlated covariates, and especially under regularization), but they illustrate analytically
-why we might expect the performance we've seen empirically: estimates based upon $\hat \mu_i = \log m_i$ do not
-suffer in out-of-sample validation. The resulting benefit is huge, as using a
-plug-in allows estimation of the Poisson regression equations to proceed in
-complete isolation from each other.
-
-\section{Gamma lasso regularization paths}
+\subsection{Parallel Poisson regressions}
 \label{GL}
 
-Given baseline intensities fixed as $\hat \mu_i = \log m_i$, each of our $D$ separate Poisson
-regressions has negative log likelihood proportional to
+Given baseline intensities fixed as $\hat \mu_i = \log m_i$, each of our $d$
+separate Poisson regressions has negative log likelihood proportional to
 \begin{equation}\label{obj}
 l(\alpha_j, \bs{\varphi}_j) = \sum_{i=1}^n \left[ m_i 
 e^{\alpha_j + \bm{v}_i'\bs{\varphi_j}} - c_{ij}(\alpha_j + \bm{v}_i'\bs{\varphi_j})\right].
 \end{equation}
-This section will describe estimation via regularized minimization of
-these objectives. We drop the $j$ response-category subscript for
+This section describes estimation via regularized minimization of these
+objectives. We will drop the $j$ response-category subscript throughout for
 simplicity.
 
-In high-dimensional analysis, likelihood maximization has been replaced by
-penalized likelihood maximization as the estimation tool-of-choice.  Systems
-like (\ref{obj}) imply the penalized objective $l(\alpha,\bs{\varphi}) +
-n\lambda \sum_k c(\varphi_k)$, where $c$ is some positive cost function and
-$\lambda >0$ is a penalty weight.  Such `regularization' has a long history in
-engineering (e.g., from Tikhonov): you back away from optimality in exchange
-for robustness.  A very common form in statistics is the lasso
-\citep{tibshirani_regression_1996}, with $c(\varphi_k) = |\varphi_k|$ an $L_1$
-cost function.  The lasso (and other costs with a spike at zero) yield
-variable selection: some coefficient estimates will be set to exactly zero.
+In high-dimensional regression, it can be useful to regularize estimation
+through a penalty on coefficient size.   This helps  to avoid over-fit and
+stabilize estimation.
+A very common form of regularization imposes $L_1$ coefficient costs
+\citep[i.e., the lasso of][]{tibshirani_regression_1996} which, due to
+a non-differentiable cost spike at the origin, yields variable selection: some
+coefficient estimates will be set to exactly zero.  Our results here use {\it
+weighted $L_1$ regularization}
+\begin{equation}\label{wl1}
+ \hat\alpha,\bs{\hat\varphi} = \argmin_{\alpha,\bs{\varphi}} \left\{l(\alpha,\bs{\varphi}) + n \lambda \sum_{k=1}^p \omega_k |v_k |\right\}.
+\end{equation}
+Penalty size $\lambda>0$ acts as a {\it squelch} that determines what you
+measure as signal and what you discard as noise. In practice, since optimal
+$\lambda$ is unknown, one solves a {\it regularization path} of candidate
+models minimizing (\ref{wl1}) along the grid $\lambda_1 >
+\lambda_2 \ldots > \lambda_T$.  Inference is completed with selection
+along this path, with optimal $\lambda_t$ chosen to minimize cross validation
+(CV) or information criteria (IC) estimates of out-of-sample (OOS) deviance (i.e.,
+to minimize the average error for a given training algorithm when used to
+predict new data).
 
-As the optimal value of $\lambda$ is unknown and must be selected, efficient
-implementations of penalized estimation use path algorithms.  In a
-`regularization path', one starts at $\lambda_1$ large enough such that the
-solution has $\hat\varphi_j=0$ for all $j$.  The penalty weight is then
-incrementally decreased and coefficients are updated accordingly. Since the
-estimates corresponding to $\lambda_t$ tend to be good starts for estimation
-at $\lambda_{t+1}$, such routines are extremely fast (and a path along, say,
-100 $\lambda_t$ values can take less time then solving for the MLE once).
+Analysis in this article applies the {\it gamma lasso} algorithm  of
+\citet{taddy_gamma_2013}, wherein weights $\omega_j$ diminish as a
+function of $|\hat\varphi_j|$.\footnote{The iteratively reweighted least
+squares algorithm in Section 6 of \citet{taddy_gamma_2013} applies directly to Poisson
+family regressions by setting each iteration's `observation weights' $\lambda_i$ and
+`weighted response' $\log\lambda_i + y_i/\lambda_i - 1$.}  In particular,
+along the grid of $\lambda_t$ squelch values,
+\begin{equation}
+\omega^{t}_k  = \left(1 + \gamma
+|\hat\varphi^{t-1}_k|\right)^{-1} ~~\text{for}~~\gamma \geq 0.
+\end{equation} 
+This includes the standard lasso at
+$\gamma=0$.  For $\gamma>0$ it provides  {\it diminishing bias} regularization,
+such that strong signals are less biased towards zero (less shrunk) than for
+weak signals. This allows
+tends to
+yield sparser $\bs{\hat
+\varphi}$, which is useful in reducing both storage and communication, and can
+also lead to lower false discovery rates.  
 
-We will adopt the gamma lasso (GL) approach of
-\citet{taddy_gamma_2013}.  That article outlines a simple path
-algorithm for $L_1$ penalization with  variable-specific weights $\lambda_t
-\omega^t_{k}$.  The GL is `adaptive' in that the  weights at segment
-$t+1$ depend on coefficient estimates from time $t$ ($\hat \varphi^t_k$)
-through the equation $\omega^{t+1}_k  = \left(1 + \gamma
-|\hat\varphi^t_k|\right)^{-1}$ where $\gamma \geq 0$.  This includes the
- lasso if $\gamma=0$.  For $\gamma>0$ it provides fast
-`concave' penalization, where  the amount of extra cost applied to
-$\hat \varphi$ is {\it decreasing} with the absolute value of this estimate.
-Concave penalization implies that strong signals (large $|\hat
-\varphi|$) are estimated with nearly zero shrinkage. This is appealing in
-analysis of massive datasets, as it allows such signals to include the
-effect of any collinear variables and tends to yield sparser $\bs{\hat
-\varphi}$ (which is useful in reducing both storage and computation).
+For selection along the path, we
+favor minimization of a {\it corrected AIC}
+\begin{equation}
+\text{AICc:}~~~-2l(\hat\alpha,\bs{\hat\varphi}) + 2df\frac{n}{n-df-1}.
+\end{equation}
+where $df$ is an estimate for the {\it degrees of freedom} used in estimation
+of $\{\hat\alpha,\bs{\hat\varphi}\}$.  This criteria, from
+\cite{hurvich_regression_1989}, corrects the AIC's tendency to over-fit in
+high-dimensions and \cite{taddy_gamma_2013} finds it performs well in a variety
+of settings.  In Section \ref{FGL}, where computation costs are very low, we
+also consider CV selection rules: both CV1se, which chooses the largest
+$\lambda_t$ with mean OOS deviance no more than one standard error away from
+the minimum, and CVmin, which simply chooses $\lambda_t$ with lowest mean
+OOS deviance.
 
-Even thought GL paths have this nice feature of diminishing bias, each segment
-on the path requires only a simple $L_1$ minimization.  These are solved via
-coordinate descent within a Poisson-specific version of iteratively re-weighted least squares (IRLS): the
-algorithm in \citet[Section 6]{taddy_gamma_2013} with each iteration's
-`observation weights' $\lambda_i$ and `weighted LS response' $\log\lambda_i +
-y_i/\lambda_i - 1$.  Here, $\lambda_i = m_ie^{\hat\eta_i}$ is the fitted
-intensity at current estimates (recall we're suppressing the $j$  subscript).
-A full overview of GL estimation is in the original paper, along with a
-general review of concave penalization.  A central theme of the article is
-that  one needs to understand the properties of the entire path in order to
-pick a single point estimate, $\bs{\varphi}^t$.
-
-Penalized path estimation is a tool for enumerating a set of candidate models:
-all those along the grid $\lambda_1 \ldots \lambda_T$.  Think of the weights
-$\lambda_t$ as a sort of {\it squelch} that determines what you measure as
-signal and what you discard as noise.  The framework is incomplete
-without  a way to choose amongst possible $\lambda_t$ values.  This is  a
-problem of model selection, and we will address the issue through use of
-information criteria \citep[IC; e.g.,][]{efron_estimation_2004}.  
-
-We choose amongst  candidate
-parameter estimates $\{\bs{\hat\Theta}_1 \ldots \bs{\hat\Theta}_1 \}$ to
-minimize \begin{equation}\label{cp} \text{IC}(k) = 2l(\bs{\hat\Theta}_t ) +
-k\times df \end{equation} where $2l$ is fitted deviance,   $k$ is a complexity
-penalty and $df$ is the number of degrees of freedom in minimization of $l$,
-the negative log likelihood.   For the standard lasso, $df$ is simply the
-number of nonzero parameters \citep{zou_degrees_2007}, while
-\cite{taddy_gamma_2013} provides a heuristic for calculating $df$ under
-different levels of concavity in the gamma lasso.
-
-There are two possible ways that IC can be applied in DMR.  The first, perhaps more obvious, option has $\bs{\Theta}$ the full set of multinomial parameters, $[\bs{\alpha},\bs{\Phi}]$, and $2l$ is multinomial deviance.  This scheme leads to a number of computational bottlenecks: since $\lambda_t$ selection is shared across response categories, each 
- Poisson regression regularization path needs to run on the same grid of penalty weights.  Moreover, the full coefficient paths need to be passed back to a central machine for evaluation of multinomial deviance at each path segment (which can itself be expensive, due to the normalization required in calculating a multinomial likelihood).  
-
-As an alternative, we advocate independent {\it ungrouped} IC selection for each individual Poisson regression: there are $D$ unique $\bs{\Theta} = [\alpha_j,\bs{\varphi}_j]$ and $l$ is 
-the corresponding Poisson deviance.  We do not include $\hat \mu_i = \log m_i$ in the degrees of freedom accounting, such that $df_j$ based on only $[\alpha_j,\bs{\varphi}_j]$.
-In this set-up each Poisson regression has its own
-regularization path and selected coefficients correspond to a unique penalty weight $\lambda^t_j$.  This speeds up computation by allowing calculation of initial $\lambda^1_j$ to occur in parallel, by limiting communication to only the coefficient estimates at selected $\lambda^t_j$ (instead of the entire paths), and by eliminating the need for any full multinomial likelihood evaluation.  Moreover we find -- despite what we may have hypothesized about the benefits of grouped selection -- that the independent Poisson model IC selection performs at least as well as grouped multinomial selection in OOS validation.  
-
-The two most common IC rules are the AIC, with $k=2$, and BIC, with
-$k=\log(n)$. Our experience is that with large $n$ the BIC selects overly
-simple models, while for more covariates than observations the AIC overfits.
-The two options act as informal bounds on model complexity.
-In the examples here (which always have larger $n$ than number of
-covariates), the AIC is the best performer by a large margin in both grouped and independent selection.  
-
-Note that IC model selection is somewhat nonstandard  -- cross validation
-(CV), the procedure of looping over out-of-sample (OOS) prediction on 
-left-out folds (subsets) of your data, is probably more common.  We focus on IC here, and use CV only for validation of our various IC techniques, because the intent of the work is to offer massive scalability. Monte Carlo routines require significant extra time and communication overhead (plus thread-safe random number generation).  However, there is  nothing inherently wrong with CV selection in DMR; we hypothesize that CV rules applied to each independent Poisson regression will do very well.
+See \cite{taddy_gamma_2013} for details.\footnote{All of our results use the
+{\tt gamlr} implementation in R.  The glass-shard example of Section \ref{FGL}
+sets $\gamma=0$ for direct comparison to a lasso penalized alternative, while
+the Yelp fits of Section \ref{YELP} all use $\gamma=1$ for more sparsity.}
+That article reviews diminishing bias penalty regularization, emphasizing
+connections to weighted $L_1$ penalties, the role of regularization paths and
+model selection, and the distance from a weighted $L_1$ solution to an $L_0$
+penalized oracle.
 
 \section{Polychotomous classification: glass shards}
 \label{FGL}
@@ -909,8 +909,7 @@ unnecessary if you consider the Poisson a fine model in and of itself.
 \subsection{MapReduce} 
 \label{MR}
 
-We now outline a MapReduce algorithm for analysis of unstructured  data via
-distributed MNIR.   MapReduce \citep[MR;][]{dean_mapreduce:_2004} is a  recipe
+  MapReduce \citep[MR;][]{dean_mapreduce:_2004} is a  recipe
 for analysis of massive datasets, designed to work when the data itself is
 distributed: stored in many files on a network of distinct machines.
 The most common platform for  MR is Hadoop paired with a distributed file-
@@ -920,11 +919,11 @@ Amazon's S3 storage).
 A MapReduce routine has three main steps: map, sort, and reduce.  The sort  is handled by 
 Hadoop, such that the statistician need worry only about map and reduce.  The map operation parses  unstructured data into a special format.  For us, in a text mining example, the mapper program will take a document as input, parse the text into tokens (e.g. words), and output lines of processed token counts: `\cd{token   document|count}'.  The pre-tab item (our \cd{token}) is called a `key'.  Hadoop's sort facility uses these keys to send the output of your mappers to machines for the next step, reducers, ensuring that all instances of the same key (e.g., the same word) are grouped together at a single reducer.  The reducer then executes some operation that is independent-by-key, and the output is written to file (usually one file per reducer).
 
-Distributed MNIR fits nicely in the MR framework.  Our map step tokenizes your unstructured data  and organizes the output by token keys.  Reduce then takes all observations on a single token and runs a Poisson log regression, applying the gamma lasso with IC selection to obtain coefficient estimates.  These are used to build our SR scores, which can be employed in forward regression after the MR routine is done.  This recipe is detailed in Algorithm \ref{mralgo}.
+DMR fits nicely in the MR framework.  Our map step tokenizes your unstructured data  and organizes the output by token keys.  Reduce then takes all observations on a single token and runs a Poisson log regression, applying the gamma lasso with IC selection to obtain coefficient estimates.  These are used to build our SR scores, which can be employed in forward regression after the MR routine is done.  This recipe is detailed in Algorithm \ref{mralgo}.
 
 \vskip .2cm
 \begin{algorithm}[htb]
-\caption{\label{mralgo} Distributed MNIR }
+\caption{\label{mralgo} MapReduce DMR }
 \vskip .25cm
 {\bf Map:}  For each document, tokenize and count sums for each token.  Save the total counts $m_i$ along with attribute information $\bm{v}_i$. Output \cd{token   document|count}.
 
@@ -935,12 +934,10 @@ Combine totals $m_i$ and attributes $\bm{v}_i$ into a single table, say \cd{VM}.
 {\bf Reduce:} For each token key `$j$', obtain a regularization path for Poisson regression of counts $c_{ij}$ on attributes $\bm{v}_i$ with $\hat\mu_i = \log m_i$.  Apply AIC to select a segment of coefficients from this path, say $\bs{\hat\varphi}_j$, and output nonzero elements in sparse triplet format: \cd{word|document|count}. 
 
 \vskip .25cm
-Each reducer maintains a running total for SR projection, $\bm{z}_i \stackrel{+}{=} \bm{x}_i'\bs{\hat \varphi_j}/m_i$, output as say \cd{Z.r} for the $r^{th}$ reducer.  When all machines are done we aggregate \cd{Z.r} 
+Each reducer writes coefficients $\bs{\hat\varphi}_j$ of interest to file, and maintains a running total for SR projection, $\bm{z}_i += \bm{c}_i'\bs{\hat \varphi_j}$, output as say \cd{Z.r} for the $r^{th}$ reducer.  When all machines are done we aggregate \cd{Z.r} 
 to get the complete projections.  
 
-\vskip .25cm
-The final output is the $n \times K$ table \cd{Z} (or with $<K$ columns if you don't need all projection dimensions).  The framework is completed in forward regression with \cd{Z} and \cd{VM}. 
-\vskip .5cm
+~
 \end{algorithm}
 
 
