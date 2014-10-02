@@ -92,7 +92,7 @@ logs (counts on websites), and website tracking (counts of clicks). The unit
 upon which counts are observed -- e.g., a `document' for text or a `user' in
 web analysis -- is annotated with {\it attributes}, additional information
 about each document (author, date, etc) or user (age, purchases, etc).  Much
-of contemporary Big Data analysis involves some exploration, inference, and
+of contemporary Big data analysis involves some exploration, inference, and
 prediction of, or controlling for, the relationship between these attributes
 and the associated very-high-dimensional counts.
 
@@ -186,32 +186,32 @@ That is, the multinomial is `embedded' in the Poisson as
 ~m_i\right)\mr{Po}\left(m_i;~\Lambda_i\right). 
 \end{equation}
 
-This well known connection has long been used by statisticians to justify
-ignoring whether sampling was conditional on margin totals in analysis of
-contingency tables. \cite{birch_maximum_1963} showed that the maximum
-likelihood estimate (MLE) of $\bs{\lambda}_i$ is unchanged under a variety of
-sampling models for 3-way tables {\it under the constraint} that $\Lambda_{i}
-= m_i$. This is satisfied at the MLE for a saturated model, with as many
-parameters as cells in the table. \cite{palmgren_fisher_1981} extended the
-Birch work to log-linear regression models, with $\lambda_{ij} = \exp[\alpha_j
-+ \mu_i + \bs{\varphi}_j'\bm{v}_i]$, where $\bm{v}_i$ is a $p$-vector of
-covariates, for observations $i=1\ldots n$. The Fisher information on
-$\bs{\Phi} = [\bs{\varphi}_1 \cdots \bs{\varphi}_d]'$ is the same regardless
-of whether or not you've conditioned on $m_i$ (i.e., in either multinomial
-logistic regression or Poisson log regression) so long as $\mu_i$ in the
-Poisson model is estimated at its conditional MLE, $\hat \mu_i =
-\log\left(m_i/\sum_j e^{\alpha_j + \bs{\varphi}_j\bm{v}_i}\right)$.
+This well known result has long been used by statisticians to justify ignoring
+whether sampling was conditional on margin totals in analysis of contingency
+tables. \cite{birch_maximum_1963} showed that the maximum likelihood estimate
+(MLE) of $\bs{\lambda}_i$ is unchanged under a variety of sampling models for
+3-way tables {\it under the constraint} that $\Lambda_{i} = m_i$. This is
+satisfied at the MLE for a saturated model. \cite{palmgren_fisher_1981}
+extends the theory to log-linear regression with $\lambda_{ij} = \exp[\alpha_j
++ \mu_i + \bs{\varphi}_j'\bm{v}_i]$, showing that the Fisher information on
+  regression coefficients is the same regardless of whether or not you've
+  conditioned on $m_i$  so long as $\mu_i$ in the Poisson model is estimated
+  at its conditional MLE, $\hat \mu_i =
+\log\left(m_i/\sum_j e^{\alpha_j + \bs{\varphi}_j\bm{v}_i}\right)$.  
 
-Traditionally, this connection is invoked when applying multinomial logistic
+Most commonly, (\ref{embed}) is invoked when applying multinomial logistic
 regression: totals $m_i$ are then ancillary and the $\mu_i$ drop out of the
 likelihood.  Our DMR framework takes the opposite view: if we are willing to
-fix estimates $\hat\mu_i$ -- potentially not at their MLE (we will argue for
-$\hat\mu_i = \log m_i$) -- then the factorized Poisson likelihood can be
-analyzed independently across response categories. As highlighted in the
-introduction, this yields distributed computing algorithms for estimation
-on previously impossible scales.  Indeed, we have observed in text and web
-analysis a recent migration from multinomial models -- say, for latent
-factorization -- to Poisson model schemes; see
+fix estimates $\hat\mu_i$ potentially not at their MLE (we will argue for
+$\hat\mu_i = \log m_i$), then the factorized Poisson likelihood can be
+analyzed independently across response categories.\footnote{In an older version
+of this idea, \cite{hodges_poisson_1960} introduce a Poisson approximation
+to the binomial distribution, for which
+\cite{mcdonald_poisson_1980} derives error bounds.} As
+highlighted in the introduction, this yields distributed computing algorithms
+for estimation on previously impossible scales.  Indeed, we have observed in
+text and web analysis a recent migration from multinomial models -- say, for
+latent factorization -- to Poisson model schemes; see
 \citet{gopalan_scalable_2013} as an example.  From the perspective of this
 article, such strategies are Big data approximations to their
 multinomial precursors.
@@ -878,12 +878,24 @@ the text information.
 \section{Discussion}
 \label{END}
 
-The distribution of MNIR has opened the opportunity for it to be applied on a new  scale, one that is limited only by the number of machines you are able procure.  This includes applications where our attribute sets include a large number of fixed or even, in iterative block relaxation algorithms, latent random effects.  
+The distribution of estimation for big multinomial regressions has opened the
+opportunity for such models to be applied on a new  scale, one that is limited
+only by the number of machines you are able procure.  This includes
+applications where our attribute sets include a large number of fixed or even,
+in iterative block relaxation algorithms, latent random effects.
 
-This advance is important for our applied work.  The collapsing of \cite{taddy_multinomial_2013} is useful in pure prediction problems, but today we more often find ourselves addressing inference questions  of the type in Section \ref{INFER}.  High dimensional attribute sets are essential for such problems because the MNIR model needs to believable. This is in contrast to pure prediction problems where, as outlined in \cite{taddy_rejoinder:_2013}, one can model IR misspecification during forward regression.  Moreover, in social science collaboration and in business settings we've found it very valuable to have available a large set of text projections that one can call upon as required.  
+This advance is important for our applied work.  The collapsing of
+\cite{taddy_multinomial_2013} is useful in pure prediction problems, but today
+we more often find ourselves addressing inference questions  of the type in
+Section \ref{INFER}.  High dimensional attribute sets are essential for such
+problems because multinomial model needs to believable. This is in contrast to
+pure prediction problems where, as outlined in \cite{taddy_rejoinder:_2013},
+one can model inverse regression misspecification during forward regression.  Moreover, in
+business collaboration we've found it very
+valuable to have available a large set of text projections that one can call
+upon as required.
 
-Finally, the message of this paper has been that Poissson regression  enables fast and distributed
-algorithms for approximating multinomial distributions.  It has been pointed
+Finally, the message of this paper has been that Poisson factorization  enables fast estimation of multinomial distributions.  It has been pointed
 out to us that, in unstructured data analysis, a Poisson seems little more
 arbitrary than a multinomial model.  Equation (\ref{embed}) clarifies
 this issue:  the only additional assumption one makes by working with
