@@ -99,7 +99,7 @@ and the associated very-high-dimensional counts.
 
 Say $\bm{c}_i$ is a vector of counts in $d$ categories, summing to $m_i =
 \sum_j c_{ij}$, accompanied by a $p$-dimensional attribute vector $\bm{v}_i$ on observation
-unit $i$.  For example, in the archetypal text mining application, $\bm{c}_i$
+unit $i$ of $n$ total.  For example, in the archetypal text mining application, $\bm{c}_i$
 are counts for words in document $i$ annotated with metadata $\bm{v}_i$.   We
 connect attributes and counts through a big multinomial logistic regression
 model,
@@ -125,7 +125,7 @@ We refer to this framework as {\it distributed multinomial regression}, or DMR.
 Our work here extends ideas from \cite{taddy_multinomial_2013}, which
 introduced the strategy of {\it multinomial inverse regression} (MNIR).  That
 article argues for estimation of models like (\ref{bigmn}) as the first step
-in an inverse regression routine for predicting elements of $\bm{v}$.
+in an inverse regression routine for predicting elements of new $\bm{v}_i$.
 However, \cite{taddy_multinomial_2013} relies upon a fitting algorithm that
 collapses response counts across equal $\bm{v}_i$, and hence scales {\it only}
 for a small number of attributes (i.e., when $p$ is just one or two). That
@@ -282,11 +282,11 @@ each $\eta_{ij}$ free, $\hat
 \sum_i e^{\hat\mu_i} = \log\left( \sum_i c_{ij}/M \right)$ where $M = \sum_i
 m_i$, and $g(\hat \mu_i) = m_i(\sum_j \sum_i c_{ij}/M -1) = 0$.
 \item Consider a single
-$x_i \in
-\{0,1\}$ such that $\eta_{ij} = \alpha_j + x_i \varphi_j$.  Write $C_{xj} = \sum_{i: x_i=x} c_{ij}$ and  $M_{x} = \sum_{i:
-x_i=x} m_i = \sum_j C_{xj}$.  Then the Poisson MLE are $\hat\alpha_j =
+$v_i \in
+\{0,1\}$ such that $\eta_{ij} = \alpha_j + v_i \varphi_j$.  Write $C_{vj} = \sum_{i: v_i=v} c_{ij}$ and  $M_{v} = \sum_{i:
+v_i=v} m_i = \sum_j C_{vj}$.  Then the Poisson MLE are $\hat\alpha_j =
 \log(C_{0j}/M_0)$ and $\hat\varphi_j = \log(C_{1j}/M_1) - \log(C_{0j}/M_0)$,
-so that  $g(\hat \mu_i) = m_i\left(\sum_j C_{x_ij}/M_{x_i} -1 \right) =0$.
+so that  $g(\hat \mu_i) = m_i\left(\sum_j C_{v_ij}/M_{v_i} -1 \right) =0$.
 \end{itemize}
 Of course, these examples do not form a general result: the situation is more
 complicated with correlated covariates or under regularization. But they
@@ -317,7 +317,7 @@ a non-differentiable cost spike at the origin, yields variable selection: some
 coefficient estimates will be set to exactly zero.  Our results here use {\it
 weighted $L_1$ regularization}
 \begin{equation}\label{wl1}
- \hat\alpha_j,\bs{\hat\varphi}_j = \argmin_{\alpha_j,\bs{\varphi}_j} \left\{l(\alpha_j,\bs{\varphi}_j) + n \lambda \sum_{k=1}^p \omega_{jk} |v_k |\right\} ~~\text{where}~~\lambda,\omega_{jk} \geq 0.
+ \hat\alpha_j,\bs{\hat\varphi}_j = \argmin_{\alpha_j,\bs{\varphi}_j} \left\{l(\alpha_j,\bs{\varphi}_j) + n \lambda \sum_{k=1}^p \omega_{jk} |\varphi_{jk} |\right\} ~~\text{where}~~\lambda,\omega_{jk} \geq 0.
 \end{equation}
 Penalty size $\lambda$ acts as a {\it squelch} that determines what you
 measure as signal and what you discard as noise. In practice, since optimal
@@ -327,7 +327,9 @@ models minimizing (\ref{wl1}) along the grid $\lambda_1 >
 along this path, with optimal $\lambda_t$ chosen to minimize cross validation
 (CV) or information criteria (IC; e.g. Akaike's AIC) estimated
 out-of-sample (OOS) deviance (i.e., to minimize the average error for a given
-training algorithm when used to predict new data).
+training algorithm when used to predict new data).  Crucially,  {\it selection is
+applied independently for each category $j$ regression}, so that only a single
+set of coefficients need be communicated back to a head node. 
 
 Analysis in this article applies the {\it gamma lasso} algorithm  of
 \citet{taddy_gamma_2013}, wherein weights $\omega_j$ diminish as a
@@ -336,31 +338,30 @@ squares algorithm in Section 6 of \citet{taddy_gamma_2013} applies directly to P
 family regressions by setting each iteration's `observation weights' $\lambda_i$ and
 `weighted response' $\log\lambda_i + y_i/\lambda_i - 1$.}  In particular,
 along the grid of $\lambda_t$ squelch values,
-\begin{equation}
+\begin{equation}\label{glweight}
 \omega^{t}_{jk}  = \left(1 + \gamma
 |\hat\varphi^{t-1}_{jk}|\right)^{-1} ~~\text{for}~~\gamma \geq 0.
 \end{equation} 
 This includes the standard lasso at $\gamma=0$.  For $\gamma>0$ it provides
 {\it diminishing bias} regularization, such that strong signals are less
-biased towards zero (less shrunk) than for weak signals. This tends to yield
+shrunk towards zero than  weak signals. This yields
 sparser $\bs{\hat
-\varphi}$, which is useful in reducing both storage and communication, and can
+\varphi}$, which reduces storage and communication needs, and can
  lead to lower false discovery rates.  
 
 For selection along the path, we
-favor minimization of a {\it corrected AIC}
+minimize a {\it corrected AIC} \citep{hurvich_regression_1989}
 \begin{equation}
-\text{AICc:}~~~-2l(\hat\alpha_j,\bs{\hat\varphi}_j) + 2df_j\frac{n}{n-df_j-1}.
+\text{AICc:}~~~-2l(\hat\alpha_j,\bs{\hat\varphi}_j) + 2df_j\frac{n}{n-df_j-1},
 \end{equation}
-where $df_j$ is an estimate for the {\it degrees of freedom} used in estimation
-of $\{\hat\alpha_j,\bs{\hat\varphi}_j\}$.  This criteria, from
-\cite{hurvich_regression_1989}, corrects the AIC's tendency to over-fit in
-high-dimensions and \cite{taddy_gamma_2013} finds it performs well in a variety
-of settings.  In Section \ref{FGL}, where computation costs are very low, we
-also consider CV selection rules: both CV1se, which chooses the largest
-$\lambda_t$ with mean OOS deviance no more than one standard error away from
-the minimum, and CVmin, which simply chooses $\lambda_t$ with lowest mean
-OOS deviance.
+where $df_j$ is the estimated {\it degrees of freedom} used to fit
+$\{\hat\alpha_j,\bs{\hat\varphi}_j\}$.  This corrects the AIC's tendency to
+over-fit, and \cite{taddy_gamma_2013} finds that AICc performs well in a
+variety of settings.   In Section
+\ref{FGL}, where computation costs are very low, we also consider CV selection
+rules: both CV1se, which chooses the largest $\lambda_t$ with mean OOS
+deviance no more than one standard error away from  minimum, and CVmin,
+which chooses $\lambda_t$ at lowest mean OOS deviance.
 
 See \cite{taddy_gamma_2013} for details.\footnote{All of our results use the
 {\tt gamlr} implementation in R.  The glass-shard example of Section \ref{FGL}
@@ -372,12 +373,7 @@ model selection, and the distance from a weighted $L_1$ solution to an $L_0$
 penalized oracle.
 
 
-\begin{figure}[ht!]
-\includegraphics[width=6.25in]{../graphs/fgl_coef}
-\caption{\label{fgl_coef} {\it Forensic Glass}. Regularization paths for each glass-type, with AICc selections marked.}
-\end{figure}
-
-\section{Polychotomous classification: glass shards}
+\section{Example: glass shards}
 \label{FGL}
 
 
@@ -394,6 +390,7 @@ speedups close to linear in $d$, depending upon machine
 architecture.} Thus before moving to our Yelp case study, we look at the
 surprisingly strong performance of DMR in a simple classification problem.
 
+
 This example considers the small {\it forensic glass} dataset from
 \citet{venables_modern_2002}, available in the \cd{MASS} library for \cd{R}
 under the name \cd{fgl}.\footnote{For the code used in this example, type
@@ -405,6 +402,13 @@ vehicle headlamps (\cd{Head}).  Covariates for each shard are their refractive
 index and \%-by-weight composition amongst 8 oxides. Figure \ref{fgl_coef}
 shows Poisson regression regularization paths for each glass type,
 with AICc selection marked by a vertical dashed line.
+
+
+\begin{figure}[hb]
+\includegraphics[width=6.25in]{../graphs/fgl_coef}
+\caption{\label{fgl_coef} {\it Forensic Glass}. Regularization paths for each glass-type, with AICc selections marked.}
+\end{figure}
+
 
 \begin{figure}
 \includegraphics[width=6.25in]{../graphs/fgl_cv}
@@ -422,51 +426,207 @@ multinomial logistic regression as implemented in the \cd{glmnet} package for
 
 
 \begin{figure}[h]
-\hskip 3cm\includegraphics[width=3in]{../graphs/fgl_mu}
+\hskip 4cm\includegraphics[width=3in]{../graphs/fgl_mu}
 \caption{\label{fgl_mu} {\it Forensic Glass}.  The  conditional MLEs $\mu^\star_i$ implied at our DMR coefficient estimates.   }
 \vskip -.25cm
 \end{figure}
 
 
-\section{Yelp review popularity prediction}
+\section{Yelp case study}
 \label{YELP}
 
-\begin{table}[htb]\vspace{-.5cm}
-\footnotesize\setstretch{1}
-\hspace{-.25cm}
+
+These data were supplied by the review site Yelp for a data mining contest on
+\cd{kaggle.com}.  The data are available at
+\cd{www.kaggle.com/c/yelp\!-\!recruiting/data}, and code for processing
+and estimation is  at
+\cd{github.com/TaddyLab/yelp}.  We consider business, user, and review datasets
+in the \cd{yelp\_training\_data} collection.  The reviews, for all sorts of
+businesses, were recorded on January 19, 2013 for a sample of locations near to
+Phoenix AZ.  The goal of the competition was to predict the combined number of
+`funny', `useful', or `cool' (f/u/c) votes that a given review receives from
+other users.  Such information can be used by yelp to promote f/u/c  reviews
+before waiting for the users to grade them as such.
+
+
+After detailing the  data and model in Section
+\ref{YELP}.1, we describe a series of statistical analyses.
+\begin{itemize}\sgl
+\item[\ref{YELP}.2] Investigate model fit under a range of regularization
+schemes, looking at how word loadings change with the relative  weight of
+penalty on variables of interest vs controls.
+\item[\ref{YELP}.3] Use the ideas of `sufficient reduction' to project text
+through the model onto topics relevant to f/u/c votes or star ratings, and
+interpret the resulting factor spaces.
+\item[\ref{YELP}.4] Apply these factor projections in prediction for the
+number of f/u/c votes (i.e., the original \cd{kaggle} task), and compare
+results against a standard lasso in OOS experimentation.
+\item[\ref{YELP}.5] Use the factor projections in treatment effect
+estimation -- for the effect of user experience on rating -- where they serve
+to control for heterogenaity in review content.
+\end{itemize}
+By viewing text data as a big multinomial regression, we are able to address
+all of the above (and resolve the effects of many collinear attributes on
+review text) through a single model fit.
+
+\subsection{Data and model specification}
+
+The data are $n=$ 215,879 reviews on 11,535 businesses by 43,873
+users.\footnote{We've removed reviews with unknown user} Review text is split
+on whitespace and tokenized into words (including combinations of punctuation:
+potential emoticons). After stripping some common suffixes (e.g., `s', `ing',
+`ly') and removing a very small set of stopwords (e.g., `the', `and', `or'),
+we count frequencies for $d=$ 13,938 words occurring in more than 20 ($<
+0.01\%$) of the reviews (total word count is $M=$ 17,581,214).  
+
+\begin{samepage}
+\noindent Metadata
+includes review, business, and user attributes.
+\begin{itemize}\sgl
+\item \cd{stars}: review star rating (out of 5), from which we subtract the business average rating.
+\item Review counts for \cd{funny}, \cd{useful}, or \cd{cool} votes.  We divide these by the square root of review age, which yields metrics roughly uncorrelated with the posting date.
+\item \cd{usr.count}: a user's total number of reviews at time of posting the given review
+\item \cd{usr.stars}: a user's average star rating across all of their reviews.
+\item A user's average \cd{usr.funny}, \cd{usr.useful}, or \cd{usr.cool} votes
+per review.
+\item Business average star rating \cd{biz.stars} and review count \cd{biz.count}.
+\item Business location amongst 61 possible cities surrounding (and including) Phoenix.
+\item Business classification according to Yelp's non-exclusive (and partially user generated) taxonomy.  We track membership  for 
+333 categories  containing more than 5 businesses. 
+\end{itemize}\end{samepage}
+This yields 405 variables for each review.  We also specify random effects for
+each of the 11,535  businesses, leading to total attribute dimension
+$p=$ 11,940. Data components are the $n \times d$ document-term matrix $\bm{C}$, the
+$n$-vector of its row-totals  $\bm{m}$, and the $n\times p$ attribute matrix
+$\bm{V}$.  
+
+We split each row of the attribute matrix into two elements: $\bm{a}_i$, the
+11 numeric review attributes from \cd{stars} through
+ \cd{biz.count}, and $\bm{b}_i$, a length-11,929 vector of dummy indicators for  business identity,
+ location, and yelp classification.    This is done to differentiate the
+ variables we deem of primary interest ($\bm{a}_i$) from those which we
+ include as controls ($\bm{b}_i$); write $\bm{V} = [~\bm{A}~ \bm{B}~]$ as the
+ resulting partition. Columns of $\bm{A}$ are normalized to have mean zero and
+ variance one.  The multinomial regression  of (\ref{bigmn}) is adapted by
+ similarly splitting each $\bs{\varphi}_j = [ {\bs{\varphi}_j^a},
+ {\bs{\varphi}_j^b}]$ and rewriting category intensities
+$
+\log \lambda_{ij} = \alpha_j + \bm{a}_i'\bs{\varphi}^a_j + \bm{b}_i'\bs{\varphi}^b_j.
+$
+
+\subsection{Multinomial model fit and interpretation}
+
+Following the recipe of Section \ref{GL}, 
+each word's Poisson regression is estimated 
+\begin{equation}\label{yelpobj}
+ \hat\alpha_j,\bs{\hat\varphi}_j = 
+ \argmin_{\alpha_j,\bs{\varphi}_j} \left\{l(\alpha_j,\bs{\varphi}_j) + n \lambda \left[\sum_k \omega^a_{jk} |\varphi^a_{jk} | + \frac{1}{\tau}\sum_k \omega^b_{jk} |\varphi^b_{jk} |\right]\right\},
+\end{equation}
+where $l(\alpha_j, \bs{\varphi}_j) = \sum_{i=1}^n \left[ m_i e^{\alpha_j +
+\bm{a}_i'\bs{\varphi}_j^a+ \bm{b}_i'\bs{\varphi}_j^b} - c_{ij}(\alpha_j +
+\bm{a}_i'\bs{\varphi}_j^a+ \bm{b}_i'\bs{\varphi}_j^b)\right]$.
+The {\it relative penalty weight} $\tau > 0$ controls differential
+regularization between the target variables and the controls. At larger $\tau$
+values, there is less penalty on $\bs{\varphi}_j^b$ and the effect of
+$\bm{b}_i$ on $c_{ij}$ has less opportunity to pollute our estimate for
+$\bs{\varphi}_j^a$. That is, $\bs{\hat\varphi}_j^a$ becomes more purely a {\it
+partial effect}. At the extreme of $\tau = \infty$, any collinearity with
+$\bm{b}_i$ is be completely removed from the estimated $\bs{\hat\varphi}_j^a$.
+
+As outlined in Appendix \ref{MR}, counts for the $14k$ words are partitioned
+into 128 files.  Each file is then read by one of 64 workstations, which
+itself uses 16 cores in parallel to run through the Poisson regressions. Each
+individual regression is a full gamma lasso path solution over grids of 100
+$\lambda_t$ squelch values, with weights $\omega_{jk}^{at},\omega_{jk}^{bt}$
+updated as in (\ref{glweight}) under $\gamma=1$, and AICc selected
+coefficients are then written to file. The entire problem (including the
+sufficient reduction projection of our next section) takes around 1/2 hour.
+
+
+\begin{figure}[b!]
+\hspace{-.25in}\includegraphics[width=6.75in]{../graphs/yelp_ir_paths}
+\caption{\label{yelp_ir} {\it Yelp}.  
+Poisson regression regularization paths for counts of the tokens \cd{:-)},
+\cd{:-/}, and
+\cd{:-(} under relative penalty weight $\tau=2$.  Coefficient values have been
+multiplied by the corresponding covariate standard deviation.  The legend
+highlights select covariates, regression degrees of freedom are on the top
+axis, and our AICc selected estimates are marked with vertical dashed lines. }
+\end{figure}
+
+
+Regularization paths for a few of the Poisson regressions, estimated under
+$\tau=2$ relative penalty weight, are shown in Figure \ref{yelp_ir}.
+Coefficient values are scaled to the effect of 1sd change in
+the corresponding attribute. We see, for example, that at our AICc selection
+the effect of a 1sd increase in review stars multiplies the expected count (or
+odds, in the multinomial model) for the happy face
+  \cd{:\!-\!)} by around $\exp 0.38 \approx 1.46$, the `hmmm' face \cd{:\!-\!/} by $\exp
+  -0.15 \approx 0.86$, and the sad face \cd{:\!-\!(} by $\exp -0.35 \approx 0.7$.
+ Notice that \cd{:\!-\!/} and \cd{:\!-\!(} both occur more often in low star
+ (negative) reviews, but that \cd{:\!-\!/} is associated with useful content while
+ \cd{:\!-\!(} is uncool.
+
+
+Table \ref{topwords} investigates fit under increasing $\tau$, which allocates
+more  count variation to the controls in $\bm{B}$.  The numbers of nonzero
+$\hat\varphi^a_{jk}$  (i.e., deemed useful for OOS prediction by AICc) are
+decreasing with $\tau$ for all attributes.  This is because $\bm{B}$ accounts
+for more variation in $\bm{C}$ at higher $\tau$, and  there is little residual
+variation left for $\bm{A}$.  At $\tau=200$, for example, there are only 7
+words positively associated with a
+\cd{cool} vote. Such differential penalization is a powerful tool in Big data
+analysis,  as it allows one to isolate partial effects in messy overdetermined
+systems.  Here, $\tau=2$ yields top words only indirectly
+associated to our attributes (e.g., {\it prik} is positive because Thai food
+is tasty), while  full $\tau=\infty$ control leads to near perfect fit and
+infinite likelihoods conditional on $\bm{B}$ alone. To our eye, $\tau=20$
+manages a good balance: there remain many significant
+$\hat\varphi^a_{jk}\neq 0$, but the model fit has avoided loading  words that
+are not directly associated with the given attributes.  This fit is used in
+the remainder of our study.
+
+\begin{table}[b!]
+\footnotesize\setstretch{1.25}
+\hspace{-.4cm}
 \begin{tabular}{cll|r}
-& \small $\bs{\tau}$ & \small $\bs{\hat\varphi \neq 0}$ & \small {\bf top ten words by loading}\\
+& \small $\bs{\tau}$ & \small $\bs{\hat\varphi \neq 0}$ 
+& \small {\bf top ten words by loading}\\
+\noalign{\smallskip}
 \hline
- & 0 &  13938 & \footnotesize\it great love amaz favorite deliciou best awesome alway perfect excellent \\
+ & \multicolumn{2}{l|}{marginal}    & \footnotesize\it great love amaz favorite deliciou best awesome alway perfect excellent \\
 \small +stars & 2 & 8440 & \footnotesize\it  unmatch salute :-)) prik laurie pheonix trove banoffee exquisite sublime \\
  & 20 & 3077 & \footnotesize\it  heaven perfection gem divine amaz die superb phenomenal fantastic deliciousnes \\
  & 200 & 508 & \footnotesize\it  gem heaven awesome wonderful amaz fantastic favorite love notch fabulou \\
 \hline
- & 0 &  13938 & \footnotesize\it  not worst ask horrib minut rude said told would didn \\
+ &  \multicolumn{2}{l|}{marginal}   & \footnotesize\it  not worst ask horrib minut rude said told would didn \\
 \small -stars & 2 & 8440 & \footnotesize\it  rude livid disrespect disgrace inexcusab grossest incompet audacity unmelt acknowledge \\
  & 20 & 3077 & \footnotesize\it  rude incompet unaccept unprofession inedib worst apolog disrespect insult acknowledge \\
  & 200 & 508 & \footnotesize\it  worst horrib awful rude inedib terrib worse tasteles disgust waste \\
 \hline
- & 0 &  13938 & \footnotesize\it  you that know like your yelp ... what don who \\
+ & \multicolumn{2}{l|}{marginal}   & \footnotesize\it  you that know like your yelp ... what don who \\
 \small funny & 2 & 6508 & \footnotesize\it  dimsum rue reggae acne meathead roid bong crotch peni fart \\
  & 20 & 1785 & \footnotesize\it  bitch shit god dude boob idiot fuck hell drunk laugh \\
  & 200 & 120 & \footnotesize\it  bitch dear god hell face shit hipst dude man kidd \\
 \hline
- & 0 & 13938 & \footnotesize\it  that yelp you thi know biz-photo like all http :// \\
+ &  \multicolumn{2}{l|}{marginal}   & \footnotesize\it  that yelp you thi know biz-photo like all http :// \\
 \small useful & 2 & 5230 & \footnotesize\it  fiancee rife dimsum maitre jpg poultry harissa bureau redirect breakdown \\
  & 20 & 884 & \footnotesize\it  biz-photo meow harissa www bookmark :-/ http :// (?), tip \\
  & 200 & 33 & \footnotesize\it  www http :// com factor already final immediate ask hope \\
 \hline
- & 0 &  13938 & \footnotesize\it  yelp you that biz-photo http :// www know like your \\
+ &  \multicolumn{2}{l|}{marginal}   & \footnotesize\it  yelp you that biz-photo http :// www know like your \\
 \small cool & 2 & 4031 & \footnotesize\it  boulder lewi rogue lagunita wanton celebratory hanker politic mozzerella onsite \\
  & 20 & 577 & \footnotesize\it  userid htm cen rand poem sultry arlin brimm cubic inspiration \\
  & 200 & 11 & \footnotesize\it  biz-photo select yelp along certain fil chose house  \\
 \hline\end{tabular}
 \caption[l]{\label{topwords}
-Top 10 words by loading on review characteristics.\hfill}
+Top 10 words by loading on review characteristics, as a function of relative
+penalty weight $\tau$.  The top row for each attribute  corresponds to
+marginal correlations between it and the text counts.}
 \end{table}
 
 
+\subsection{Sufficient reduction}
 
 \noindent
 \begin{figure}[htb]
@@ -526,135 +686,7 @@ Effect estimate & 0.003 & 0.015 & 0.019
 \end{tabular}
 \caption{Estimated effect of user experience (log number of reviews) on number of stars above business average.  Each corresponds to different levels of confounder adjustment, increasing from left to right.}
 \end{table}
-This reduces our confounder dimension from around 5 million down to 12624.
 
-These data were supplied by the review site Yelp for a data mining contest on \cd{kaggle.com}.  Full details are at \cd{www.kaggle.com/c/yelp\!-\!recruiting/data}; we'll consider the business, user, and review datasets.  The reviews, of all sorts of businesses, were recorded on January 19, 2013 for a sample of locations in the southwest US (mostly around Phoenix AZ).  The goal of the competition was to predict the combined number of `funny', `useful', or `cool' (f/u/c) votes that a given review receives from other users.  Such information can be used by yelp to promote f/u/c  reviews before waiting for the users to grade them as such.  
-
-After removing reviews by unknown users, the data are $n=$ 215,879 reviews on
-11,537 businesses by 43,873 users. Business-specific covariates include review-
-count, star-average, and location, which we model through 61 city
-fixed effects on top of state effects.  Yelp also records a non-exclusive
-taxonomy of business types; we track membership information for each of the
-333 categories  containing more than 5 businesses. User covariates are
-limited to information about past reviews on Yelp: the user's total review count
-(\cd{usr.count}), their average number of stars given (\cd{usr.stars}), and
-their previously accumulated count of f/u/c votes (\cd{usr.funny},
-\cd{usr.useful}, \cd{usr.cool}; for each observation we subtract that
-review's f/u/c votes from these totals). Review text was tokenized into
-words (including combinations of punctuation: potential emoticons) separated
-by whitespace. After stripping some common suffixes (e.g., `s', `ing', `ly')
-and removing a small set of stopwords (e.g., `the', `and', `or'), we counted
-frequencies for $D=$ 13,938 words occurring in more than 20 ($< 0.01\%$) of
-the reviews (total word count is $M=$ 17,581,214).  In addition to the text,
-review data includes the star rating and time ($t$ and $t^2$)
-measured in days since posting.  Code for tokenization and data processing
-(and for all the estimation in this section) is available at
-\cd{github.com/mataddy/yelp}.
-
- 
-This yields the following components for our analysis:  an $n \times D$
-review-word frequency matrix $\bm{C} $ and $n$-vector of row-totals  $\bm{m}$;
-the $n \times 408$ matrix $\bm{U}$ of business, user, and non-text review
-covariates; and the $n \times 9$ matrix $\bm{V}$ containing each f/u/c vote
-count by type and its interaction with the time variables, $[t,t^2]$.  Columns of both
-$\bm{U}$ and $\bm{V}$ are scaled to have a standard deviation of one. The
-multinomial inverse regression model is then
-\begin{equation}
-\bm{c}_i \sim \mr{MN}(\bm{q}_i, m_i),~q_{ij} = e^{\eta_{ij}}/\sum_{l}e^{\eta_{il}},
-~\text{where}~\eta_{ij} = \alpha_j + \bs{\varphi}_j^{u}\bm{u}_i + \bs{\varphi}_j^{v}\bm{v}_i.
-\end{equation}
-Each distributed Poisson likelihood that we fit, using $\hat\mu_i = \log m_i$, has the form,
-\begin{equation}
-c_{ij} \sim \mr{Po}\left(m_ie^{\eta_{ij}}\right) = 
-\mr{Po}\left(m_i\exp[\alpha_j + \bs{\varphi}_j^{u}\bm{u}_i + \bs{\varphi}_j^{v}\bm{v}_i]\right)
-\end{equation}
-with corresponding negative log likelihood proportional to
-\begin{equation}
-l_j = \sum_i m_i e^{\eta_{ij}} - c_{ij} \eta_{ij} 
-= \sum_i m_i \exp[\alpha_j + \bs{\varphi}_j^{u}\bm{u}_i + \bs{\varphi}_j^{v}\bm{v}_i]
-- c_{ij}(\alpha_j + \bs{\varphi}_j^{u}\bm{u}_i + \bs{\varphi}_j^{v}\bm{v}_i).
-\end{equation}
-Gamma lasso regularization paths of $20$ $\lambda_t$ values are fit
- for each independent Poisson regression.  
-We use $\gamma =1$ in the GL algorithm to achieve concave penalization via
-path adaptation. Point estimates $\bs{\hat\varphi}_j$
-are selected using AIC based on independent
-Poisson deviances.  We do not consider grouped multinomial-based selection here because of its computational expense.
-
-
-Regularization paths for a few of the Poisson models  are shown in Figure
-\ref{yelp_ir}.  We see, for example, that at our AIC selection the effect of a
-1sd increase in review stars multiplies the expected count (or odds, in the
-multinomial model) for token \cd{:-)} by around $\exp 0.35 = 1.4$ and for
-token \cd{:-(} by around $\exp -0.4 = 0.7$.  In the estimates of our
-regression model for counts of token \cd{sex}, we see that the word is
-positively associated with funny votes but negatively associated with useful
-votes (1sd extra \cd{funny} increases \cd{sex} by around 60\%, but 1sd extra
-\cd{useful} corresponds to a 30\% drop in expected \cd{sex}).
-
-\begin{figure}
-\hspace{-.25in}\includegraphics[width=6.75in]{../graphs/yelp_ir_paths}
-\caption{\label{yelp_ir} {\it Yelp}.  Inverse regression coefficient
-regularization paths for counts of the tokens \cd{:-)}, \cd{:-(}, and \cd{sex}
-regressed onto covariates $[\bm{u},\bm{v}]$.  The legend highlights select
-covariates, Poisson model degrees of freedom are on the top axis, and our AIC
-selected estimates are marked with vertical dashed lines. }
-\end{figure}
-
-Turning to forward regression, denote combined f/u/c votes -- the response of
-interest -- by the $n$-vector $\bm{y}$. We consider prediction of
-$\log(y_i+1)$ using covariates $\bm{u}_i$, review length $m_i$, and the SR
-projections $\bm{z}_i^v = (1/m_i)\bm{c}_i'\bs{\Phi}^v$, with $\bs{\Phi}^v =
-[\bs{\varphi}^v_1 \cdots \bs{\varphi}^v_9]'$  coefficients for the nine
-f/u/c$\times [1,t,t^2]$ variables in $\bm{v}_i$.  Note that we use text SR
-factors only for variables derived from $y_i$; projection onto $\bm{u}_i$ is
-ignored unless, as in Section \ref{INFER}, we want to reduce bias in estimation of
-coefficients on  $\bm{u}_i$. Two algorithms are applied for predicting
-$\log(1+\bm{y})$ from $[\bm{U},\bm{Z}^v,\bm{m}]$: ordinary least-squares (OLS), and
-a 1024 tree random forest \citep[RF;][]{breiman_random_2001} as implemented in the
-\cd{randomForest} package for \cd∫{R}. Results from a 20-fold CV (with each fold left-out for both IR and forward regression)
-are shown in Figure \ref{yelp_cv}.  For comparison, we also
-show results of straightforward lasso linear regression onto the 13,938 + 1 +
-408 =  14,347 column input matrix $[\bm{C}/\bm{m},\bm{m},\bm{V}]$, where
-rows of $\bm{C}/\bm{m}$ are word proportions $\bm{c}_i/m_i$.
-
-\begin{figure}
-\vskip -.2cm
-\hskip .5in \includegraphics[width=5.2in]{../graphs/yelp_cv}
-\vskip -.2cm
-\caption{\label{yelp_cv} {\it Yelp}.  20-fold OOS  prediction of $\log(y_i +1)$, where $y_i$ is a reviews combined f/u/c votes.  For both inverse regression
-(IR) procedures, penalization was selected inside the experiment via independent Poisson AIC.  The lines and points mark mean OOS MSE, and standard errors are too narrow to see. }
-\end{figure}
-
-
-Figure \ref{yelp_cv} shows that average performance of the IR-linear algorithm
-(MNIR + OLS), using AIC model selection for IR coefficients, is no better than
-the best straightforward lasso specification (although MNIR is being put to a
-tougher test here: selecting penalization {\it within} the CV experiment
-instead of finding the fixed penalty that performs best across folds). Such
-performance is  typical of what we've observed in Big data application.
-\footnote{In the comparisons of \cite{taddy_multinomial_2013}, the IR linear
-model consistently outperforms a linear lasso comparator in OOS prediction and
-in compute time.  However, the datasets used in that paper are both very
-small, with $M\gg n$.  Thus the simple argument in the rejoinder
-\cite{taddy_rejoinder:_2013} Proposition 1.1 -- that, for multinomial IR,
-estimation variance decreases with $M$ instead of $n$ -- is working heavily in
-favor of IR. Examples like the yelp application here are more typical in Big
-data: even though $M > n$, the vocabulary size $D$ is smaller than $n$ and
-straightforward linear regression is already plenty efficient.}   The
-advantage of MNIR with linear forward regression is then computational: it
-works in complete distribution  and is thus massively scalable (we see in
-Section \ref{INFER} that the multinomial model is also useful for structural
-inference).  However the random forest results show another advantage of MNIR:
-one can deploy flexible nonlinear machine learning on the low dimensional
-space resulting from SR projection. Methods that are too computationally
-expensive or unstable on the full covariate set are easy
-and fast to run on the reduced dimension subspace; our experience with tree
-methods finds much rich interaction structure that can be exploited after MNIR
-dimension reduction.
-
-\subsection{MNIR}
-\label{MNIR}
 
 The previous section shows DMR as a tool for $D\times$ speedups in
 polychotomous regression.  However, the procedure is really motivated by
@@ -770,8 +802,62 @@ or latent effects.   This requires a new computational framework, and it has
 driven development of DMR.  The distribution allows MNIR to work on a
 previously impossible scale.
 
-\subsection{Inference: estimating the user effect}
-\label{INFER}
+\subsection{Inverse regression for prediction}
+
+Turning to forward regression, denote combined f/u/c votes -- the response of
+interest -- by the $n$-vector $\bm{y}$. We consider prediction of
+$\log(y_i+1)$ using covariates $\bm{u}_i$, review length $m_i$, and the SR
+projections $\bm{z}_i^v = (1/m_i)\bm{c}_i'\bs{\Phi}^v$, with $\bs{\Phi}^v =
+[\bs{\varphi}^a_1 \cdots \bs{\varphi}^a_9]'$  coefficients for the nine
+f/u/c$\times [1,t,t^2]$ variables in $\bm{v}_i$.  Note that we use text SR
+factors only for variables derived from $y_i$; projection onto $\bm{u}_i$ is
+ignored unless we want to reduce bias in estimation of
+coefficients on  $\bm{u}_i$. Two algorithms are applied for predicting
+$\log(1+\bm{y})$ from $[\bm{U},\bm{Z}^v,\bm{m}]$: ordinary least-squares (OLS), and
+a 1024 tree random forest \citep[RF;][]{breiman_random_2001} as implemented in the
+\cd{randomForest} package for \cd∫{R}. Results from a 20-fold CV (with each fold left-out for both IR and forward regression)
+are shown in Figure \ref{yelp_cv}.  For comparison, we also
+show results of straightforward lasso linear regression onto the 13,938 + 1 +
+408 =  14,347 column input matrix $[\bm{C}/\bm{m},\bm{m},\bm{V}]$, where
+rows of $\bm{C}/\bm{m}$ are word proportions $\bm{c}_i/m_i$.
+
+\begin{figure}
+\vskip -.2cm
+\hskip .5in \includegraphics[width=5.2in]{../graphs/yelp_cv}
+\vskip -.2cm
+\caption{\label{yelp_cv} {\it Yelp}.  20-fold OOS  prediction of $\log(y_i +1)$, where $y_i$ is a reviews combined f/u/c votes.  For both inverse regression
+(IR) procedures, penalization was selected inside the experiment via independent Poisson AIC.  The lines and points mark mean OOS MSE, and standard errors are too narrow to see. }
+\end{figure}
+
+
+Figure \ref{yelp_cv} shows that average performance of the IR-linear algorithm
+(MNIR + OLS), using AIC model selection for IR coefficients, is no better than
+the best straightforward lasso specification (although MNIR is being put to a
+tougher test here: selecting penalization {\it within} the CV experiment
+instead of finding the fixed penalty that performs best across folds). Such
+performance is  typical of what we've observed in Big data application.
+\footnote{In the comparisons of \cite{taddy_multinomial_2013}, the IR linear
+model consistently outperforms a linear lasso comparator in OOS prediction and
+in compute time.  However, the datasets used in that paper are both very
+small, with $M\gg n$.  Thus the simple argument in the rejoinder
+\cite{taddy_rejoinder:_2013} Proposition 1.1 -- that, for multinomial IR,
+estimation variance decreases with $M$ instead of $n$ -- is working heavily in
+favor of IR. Examples like the yelp application here are more typical in Big
+data: even though $M > n$, the vocabulary size $D$ is smaller than $n$ and
+straightforward linear regression is already plenty efficient.}   The
+advantage of MNIR with linear forward regression is then computational: it
+works in complete distribution  and is thus massively scalable.  However the
+random forest results show another advantage of MNIR: one can deploy flexible
+nonlinear machine learning on the low dimensional space resulting from SR
+projection. Methods that are too computationally expensive or unstable on the
+full covariate set are easy and fast to run on the reduced dimension subspace;
+our experience with tree methods finds much rich interaction structure that
+can be exploited after MNIR dimension reduction.
+
+\subsection{Confounder adjustment in treatment effect estimation}
+
+This reduces our confounder dimension from around 5 million down to 12624.
+
 
 Machine learning feats are nice -- e.g., OOS $R^2$ greater than 50\% on the
 log number of f/u/c votes -- but for staff at Yelp it is likely more important
@@ -788,7 +874,7 @@ inference can be improved by conditioning on additional SR projections.
 Regularization paths for
 Poisson regression (full generalized linear model, not a linear model for
 log $y$) of  counts $y_i$ on   $\bm{u}_i$ and
-$\bm{z}^v_i$.  This is a gamma lasso fit with $\gamma =10$, for a very concave
+$\bm{z}^a_i$.  This is a gamma lasso fit with $\gamma =10$, for a very concave
 penalty (little bias), such that estimates at the end of the path
 are near the corresponding MLE.  As in any multivariate regression, these coefficients
 represent {\it partial effects} --  change due to
@@ -804,8 +890,6 @@ to write popular reviews.  This situation occurs because the individual
 category votes are highly collinear, with correlations between each other of
 0.7 to 0.9.
 
-\subsection{Confounder Adjustment}
-
 Inference about regression parameters is notoriously difficult in the presence of high dimensional collinear controls.  Likelihood maximization for the full 14,347
 variable regression in our Yelp example, of vote count on all attributes and all text counts,  would be very expensive and implies only around 15 observations per covariate.  
 In larger problems, $n$ and $\mr{dim}(\bm{x}_i)$ may be so large that such a regression is computationally impossible.
@@ -820,14 +904,14 @@ variables (e.g., all other review attributes and the token counts).   There
 will surely be elements of $\bm{x}_i$ that are correlated with $d_i$. If
 we estimate $\bs{\beta}$ under lasso penalization, 
 then $\hat\beta_j \neq 0$ only if there is 
-residual effect of $x_{ij}$ beyond that which can be regressed on $d_i$.  The
+residual effect of $a_{ij}$ beyond that which can be regressed on $d_i$.  The
  effect for these treatment-collinear variables will be conflated
 into $\hat\theta$, leading it to be mis-estimated simply because $d_i$ is correlated with many
 variables who's effect has been underestimated.  The efficiency of the lasso
 for prediction is now working against us in inference.
 
 In contrast, because the text covariates, $\bm{c}_i$, enter only through the 9
-dimensional SR projection $\bm{z}^v_i$, we are able to use likelihood maximization
+dimensional SR projection $\bm{z}^a_i$, we are able to use likelihood maximization
  to estimate the partial effects.
 We can improve these estimates still by adding the SR
 projections $z^u_{ik}$ corresponding to the treatments of interest.    To see why, look
@@ -837,7 +921,7 @@ predictability of $\log y_i$ from $\bm{x}_i$ and of $d_i$ from $\bm{x}_i$.  To
 put it another way, an ideal version of (\ref{teffects}) would have $\ds{E}[\log y_i] = \beta_0 + d_i\theta  + \beta_y \ds{E}[\log y_i
 | \bm{x}_i] + \beta_d \ds{E}[d_i | \bm{x}_i]$.  Without the $\beta_d \ds{E}[d_i | \bm{x}_i]$ 
 term, estimated $\hat\theta$ will be confounded with any effects from
-$x_{ij}$ that can be explained by the correlated bit of $d_i$.  See
+$a_{ij}$ that can be explained by the correlated bit of $d_i$.  See
 \citet{belloni_inference_2012} for a much more rigorous and detailed
 discussion of these issues.
 
@@ -846,9 +930,9 @@ and} the relevant elements of $\bm{z}_i^u$, say $\bm{z}_i^d$ where $\bm{d}_i$
 contains the \cd{user.*} elements of $\bm{u}_i$, more fully controls for the
 confounding information available in review text. This is straightforward to
 demonstrate through the MNIR sufficiency results.  The model  has $y_i \indep
-\bm{c}_i | \bm{z}^v_i, \bm{u}_i, m_i$, while an augmented {\it treatment
+\bm{c}_i | \bm{z}^a_i, \bm{u}_i, m_i$, while an augmented {\it treatment
 effects MNIR} forward model has $y_i, \bm{d}_i \indep
-\bm{c}_i | \bm{z}^v_i,\bm{z}^d_i, \bm{u}_i\!\setminus\!\bm{d}_i, m_i$ with
+\bm{c}_i | \bm{z}^a_i,\bm{z}^d_i, \bm{u}_i\!\setminus\!\bm{d}_i, m_i$ with
 $\bm{u}_i\!\setminus\!\bm{d}_i$ the  elements of $\bm{u}_i$ that are
 considered controls. In the latter procedure, it is  the {\it joint}
 distribution of $y_i$ and $\bm{d}_i$ that is made conditionally independent of
@@ -890,8 +974,18 @@ The most common platform for  MR is Hadoop paired with a distributed file-
 system (DFS)  optimized for such operations (e.g., Hadoop DFS or
 Amazon's S3 storage).
 
-A MapReduce routine has three main steps: map, sort, and reduce.  The sort  is handled by 
-Hadoop, such that the statistician need worry only about map and reduce.  The map operation parses  unstructured data into a special format.  For us, in a text mining example, the mapper program will take a document as input, parse the text into tokens (e.g. words), and output lines of processed token counts: `\cd{token   document|count}'.  The pre-tab item (our \cd{token}) is called a `key'.  Hadoop's sort facility uses these keys to send the output of your mappers to machines for the next step, reducers, ensuring that all instances of the same key (e.g., the same word) are grouped together at a single reducer.  The reducer then executes some operation that is independent-by-key, and the output is written to file (usually one file per reducer).
+A MapReduce routine has three main steps: map, partition, and reduce.  The
+partition  is handled by Hadoop, such that we need worry only
+about map and reduce.  The map operation parses  unstructured data into a
+special format.  For us, in a text mining example, the mapper program will
+take a document as input, parse the text into tokens (e.g. words), and output
+lines of processed token counts: `\cd{token   document|count}'.  The pre-tab
+item (our \cd{token}) is called a `key'.  Hadoop's sort facility uses these
+keys to send the output of your mappers to machines for the next step,
+reducers, ensuring that all instances of the same key (e.g., the same word)
+are grouped together at a single reducer.  The reducer then executes some
+operation that is independent-by-key, and the output is written to file
+(usually one file per reducer).
 
 DMR fits nicely in the MR framework.  Our map step tokenizes your unstructured data  and organizes the output by token keys.  Reduce then takes all observations on a single token and runs a Poisson log regression, applying the gamma lasso with IC selection to obtain coefficient estimates.  These are used to build our SR scores, which can be employed in forward regression after the MR routine is done.  This recipe is detailed in Algorithm \ref{mralgo}.
 
