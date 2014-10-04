@@ -148,10 +148,10 @@ complete template for analysis of high-dimensional count data.
 
 The estimation strategy is detailed in Section \ref{methods}, including model
 factorization, plug-ins for $\Lambda_i$, and regularization
-path estimation within each parallel regression. The methods
+path estimation within each parallel regression. Methods
 are illustrated in the short classification example of Section
 \ref{FGL}, which shows utility for DMR not only in
-big $d$ but also as a speedup for log $d$ multinomial regressions. Finally,
+big $d$ but also as a speedup for small $d$ multinomial regressions. Finally,
 Section \ref{YELP} runs through our full Yelp example, detailing model
 estimation and a variety of analysis applications.
 \begin{itemize}\sgl
@@ -210,11 +210,11 @@ $\hat\mu_i = \log m_i$), then the factorized Poisson likelihood can be
 analyzed independently across response categories.\footnote{In an older version
 of this idea, \cite{hodges_poisson_1960} introduce a Poisson approximation
 to the binomial distribution, for which
-\cite{mcdonald_poisson_1980} derives error bounds.} As
-highlighted in the introduction, this yields distributed computing algorithms
-for estimation on previously impossible scales.  Indeed, we have observed in
-text and web analysis a recent migration from multinomial models -- say, for
-latent factorization -- to Poisson model schemes; see
+\cite{mcdonald_poisson_1980} provides error bounds and extension to
+multinomials.} As highlighted in the introduction, this yields distributed
+computing algorithms for estimation on previously impossible scales.  Indeed,
+we have observed in text and web analysis a recent migration from multinomial
+models -- say, for latent factorization -- to Poisson model schemes; see
 \citet{gopalan_scalable_2013} as an example.  From the perspective of this
 article, such strategies are Big data approximations to their
 multinomial precursors.
@@ -335,8 +335,8 @@ Analysis in this article applies the {\it gamma lasso} algorithm  of
 \citet{taddy_gamma_2013}, wherein weights $\omega_j$ diminish as a
 function of $|\hat\varphi_j|$.\footnote{The iteratively reweighted least
 squares algorithm in Section 6 of \citet{taddy_gamma_2013} applies directly to Poisson
-family regressions by setting each iteration's `observation weights' $\lambda_i$ and
-`weighted response' $\log\lambda_i + y_i/\lambda_i - 1$.}  In particular,
+family regressions by setting each iteration's `observation weights' $\lambda_{ij}$ and
+`weighted response' $\log\lambda_{ij} + c_{ij}/\lambda_{ij} - 1$.}  In particular,
 along the grid of $\lambda_t$ squelch values,
 \begin{equation}\label{glweight}
 \omega^{t}_{jk}  = \left(1 + \gamma
@@ -411,22 +411,25 @@ with AICc selection marked by a vertical dashed line.
 
 
 \begin{figure}
-\includegraphics[width=6.25in]{../graphs/fgl_cv}
-\caption{\label{fgl_cv}  {\it Forensic Glass}. OOS deviance samples for \cd{dmr} and \cd{glment} in a 20 fold OOS experiment.  }\end{figure}
+\begin{center}
+\includegraphics[width=5.75in]{../graphs/fgl_cv}
+\end{center}
+\vskip -.5cm
+\caption{\label{fgl_cv}  {\it Forensic Glass}. OOS deviance samples for \cd{dmr} and \cd{glment} in a 20-fold OOS experiment.  }\end{figure}
 
 
 
 The response here is a single category, such that $m_i = 1$ and
 $\hat\mu_i=0$ for all $i$.  This clearly violates the assumption of Poisson
-generation: $m_i=1$ is not random.  For example, Figure \ref{fgl_mu} shows the conditional MLE $\mu_i^\star = \log\left(m_i/\sum_j e^{\alpha_j + \bm{v}_i'\bs{\varphi}_j}\right)$ at AICc selected coefficients.  The result is distributed around, but not equal to, the assumed plug-in of $\hat\mu_i=0$ for all $i$.  However \cd{dmr} still works:  Figure \ref{fgl_cv} 
+generation: $m_i=1$ is not random.  For example, Figure \ref{fgl_mu} shows the conditional MLE $\mu_i^\star = \log\left(m_i/\sum_j e^{\hat\alpha_j + \bm{v}_i'\bs{\hat\varphi}_j}\right)$ at AICc selected coefficients.  The result is distributed around, but not equal to, the assumed plug-in of $\hat\mu_i=0$ for all $i$.  However \cd{dmr} still works:  Figure \ref{fgl_cv} 
 shows the distribution for OOS error in a 20-fold OOS experiment, either using AICc or CV selection {\it on each individual Poisson
 regression}, against CV selected models from a lasso path for full
 multinomial logistic regression as implemented in the \cd{glmnet} package for
 \cd{R} \citep{friedman_regularization_2010}. There are subtle differences (e.g., AICc DMR selection has lower mean deviance with higher variance), but the full multinomial fits (\cd{glmnet}) do not have any clear advantage over the nearly $d$-times faster  approximation (\cd{distrom}).
 
 
-\begin{figure}[h]
-\hskip 4cm\includegraphics[width=3in]{../graphs/fgl_mu}
+\begin{figure}[h]\vskip .5cm
+\hskip 4cm\includegraphics[width=3.25in]{../graphs/fgl_mu}
 \caption{\label{fgl_mu} {\it Forensic Glass}.  The  conditional MLEs $\mu^\star_i$ implied at our DMR coefficient estimates.   }
 \vskip -.25cm
 \end{figure}
@@ -578,11 +581,11 @@ words positively associated with a
 \cd{cool} vote. Such differential penalization is a powerful tool in Big data
 analysis,  as it allows one to isolate partial effects in messy overdetermined
 systems.  Here, $\tau=2$ yields top words only indirectly
-associated to our attributes (e.g., {\it prik} is positive because Thai food
+associated with our attributes (e.g., {\it prik} is positive because Thai food
 is tasty), while  full $\tau=\infty$ control leads to near perfect fit and
 infinite likelihoods conditional on $\bm{B}$ alone. To our eye, $\tau=20$
 manages a good balance: there remain many significant
-$\hat\varphi^a_{jk}\neq 0$, but the model fit has avoided loading  words that
+$\hat\varphi^a_{jk}\neq 0$, but the model has avoided loading  words that
 are not directly associated with the given attributes.  This fit is used in
 the remainder of our study.
 
@@ -621,80 +624,12 @@ the remainder of our study.
 \hline\end{tabular}
 \caption[l]{\label{topwords}
 Top 10 words by loading on review characteristics, as a function of relative
-penalty weight $\tau$.  The top row for each attribute  corresponds to
-marginal correlations between it and the text counts.}
+penalty weight $\tau$.  The top row for each attribute  corresponds to terms ordered by
+marginal correlations.}
 \end{table}
 
 
 \subsection{Sufficient reduction}
-
-\noindent
-\begin{figure}[htb]
-\begin{center}
-\framebox[0.95\textwidth]{
-\parbox{0.9\textwidth}{
-\vskip .5cm
-\setstretch{1.1} \small 
-{\bf Correlation matrices}
-
-\vskip .25cm
-~~~~~~\begin{tabular}{r|ccccr|cccc}
- \multicolumn{4}{l}{\it attributes ($\bm{v}$)} & & 
- \multicolumn{4}{l}{\it \hskip 2cm text projections ($\bm{z}$)} \\ 
- %\multicolumn{10}{c}{}\\
-\multicolumn{1}{c}{}& f & u &c & $\star$ &  \multicolumn{1}{c}{}&f & u &c & $\star$\\
-\cline{2-5}\cline{7-10}
-funny &  1 &  0.7 &  0.8 &   0 & \hskip 2cm funny &  1 &  -0.1 &  -0.7 &  -0.4\\
-useful &  0.7 &  1 &  0.9 &   0 & \hskip 2cm useful &  -0.1 &  1 &  0.1 &  -0.2\\
-cool &  0.8 &  0.9 &  1 &   0 & \hskip 2cm cool &  -0.7 &  0.1 &  1 &  0.5\\
-stars &   0 &   0 &   0 &  1 & \hskip 2cm stars &  -0.4 &  -0.2 &  0.5 &  1\\
-\end{tabular}
-
-\vskip .5cm
-{\bf Funniest 50-100 word review, by $\bs{z_{\tt funny}}$.}
-
-\vskip .2cm
-{\it Dear La Piazza al Forno: We need to talk. I don't quite know how to say this so I'm just going to come out with it. I've been seeing someone else. How long? About a year now. Am I in love? Yes. Was it you? It was. The day you decided to remove hoagies from your lunch menu, about a year ago, I'm sorry, but it really was you...and not me.  Hey... wait... put down that pizza peel... try to stay calm... please? [Olive oil container whizzing past head] Please! Stop throwing shit at me... everyone breaks up on social media these days... or haven't you heard?  Wow, what a Bitch!}
-
-\vskip .5cm
-{\bf Most useful 50-100 word review, by $\bs{z_{\tt useful}}$.}
-
-\vskip .2cm
-{\it  We found Sprouts shortly after moving to town.  There's a nice selection of Groceries \& Vitamins.  It's like a cheaper, smaller version of Whole Foods.
-[biz-photo] [biz-photo] We shop here at least once a week.  I like their selection of Peppers....I like my spicy food! [biz-photo][biz-photo][biz-photo] Their freshly made Pizza isn't too bad either. [biz-photo] Overall, it's a nice shopping experience for all of us. Return Factor - 100\%}
-\vskip .5cm
-}}
-\end{center}
-\caption{Illustration of the information contained in sufficient projections
-$\bm{z}$, estimated under relative penalty weight $\tau=20$.  On top are
-correlation matrices for the original review attributes in $\bm{V}$ (left) and
-for $\bm{Z}$ (right) projection from the text onto these attributes.  We then
-show the reviews, amongst those where $m\in (50,100)$, with highest projection
-scores into the {\tt funny} and {\tt useful} attribute spaces.  Note that,
-since variance of $\bm{z}$ increases with $m$,   high scoring
-reviews tend to be longer.  One can also, as in \cite{taddy_multinomial_2013},
-normalize by length and work with $\bm{z}/m$.  On this scale, the funniest
-review is `{\it Holy Mother of God}' and the most useful review is `{\it Ask
-for Nick!}'.}
-\end{figure}
-
-\begin{table}\small
-\begin{tabular}{l|ccc}
-& Marginal & Conditional on non-text covariates & Adding and interacting text SR \\
-\cline{2-4}
-Effect estimate & 0.003 & 0.015 & 0.019
-\end{tabular}
-\caption{Estimated effect of user experience (log number of reviews) on number of stars above business average.  Each corresponds to different levels of confounder adjustment, increasing from left to right.}
-\end{table}
-
-
-The previous section shows DMR as a tool for $D\times$ speedups in
-polychotomous regression.  However, the procedure is really motivated by
-multinomial applications with large $D$.  Our main application is multinomial
-inverse regression \citep[MNIR][]{taddy_multinomial_2013}, a framework for
-building supervised reduced dimension representations of high dimensional
-count data.  This section outlines MNIR, which will be applied with DMR in our
-Yelp case study of Section \ref{YELP}.
 
 Inverse regression (IR) is a general strategy for dimension reduction when
 trying to predict $K$ dimensional attributes $\bm{v}_i$ from high dimensional
@@ -713,6 +648,98 @@ Thus all information in $\bm{x}_i$ relevant to $\bm{v}_i$ is summarized in
 $\bm{z}_i$, and to predict $\bm{v}_i$ we need model only the $K$-variate
 regression of $\bm{v}_i$ on $\bm{z}_i$. See \citet{cook_fisher_2007} for an
 overview.
+
+Since the estimated loadings $\bs{\phi}_k$ are partial effects, controlling for the influence of other attributes, the SR projections will also correspond to partial rather than marginal association.
+
+Consider the correlation matrices in Figure \ref{zcor}.  The original vote
+attributes  are highly positively correlated, while the text projections are
+either nearly independent (e.g., {\tt useful} against either \cd{funny} or
+\cd{cool}) or strongly negatively correlated (\cd{funny} and \cd{cool}).  This
+suggests that there are underlying factors that encourage {\it votes in any
+category}; only after controlling for these confounding factors do we see the
+true association between f/u/c content.  Similarly, all vote attributes are
+uncorrelated with star rating, but for the text projections we see both negative
+(\cd{funny},\cd{useful}) and positive (\cd{cool}) association.
+
+
+\begin{figure}[h]
+\setstretch{1.1} \small 
+\vskip .25cm
+{\bf Correlation matrices}
+
+\begin{center}
+~~~~~~\begin{tabular}{r|ccccr|cccc}
+ \multicolumn{4}{l}{\it attributes ($\bm{v}$)} & & 
+ \multicolumn{4}{l}{\it \hskip 2cm text projections ($\bm{z}$)} \\ 
+ %\multicolumn{10}{c}{}\\
+\multicolumn{1}{c}{}& f & u &c & $\star$ &  \multicolumn{1}{c}{}&f & u &c & $\star$\\
+\cline{2-5}\cline{7-10}
+funny &  1 &  0.7 &  0.8 &   0 & \hskip 2cm funny &  1 &  -0.1 &  -0.7 &  -0.4\\
+useful &  0.7 &  1 &  0.9 &   0 & \hskip 2cm useful &  -0.1 &  1 &  0.1 &  -0.2\\
+cool &  0.8 &  0.9 &  1 &   0 & \hskip 2cm cool &  -0.7 &  0.1 &  1 &  0.5\\
+stars &   0 &   0 &   0 &  1 & \hskip 2cm stars &  -0.4 &  -0.2 &  0.5 &  1\\
+\end{tabular}
+\end{center}
+\caption{ \label{zcor} Correlation  for the original review attributes
+in $\bm{a}$ (left) and for $\bm{z}$ (right) SR text projection. }
+\end{figure}
+
+The three 50-100 word reviews in Figure \ref{threerev} provide another
+example.  A single review (bottom) on a historical site scores highest in
+$a_{\tt funny}$ and $a_{\tt useful}$  attributes (and also
+in $a_{\tt funny}$).  The review is neither dry nor useless, but we imagine
+ it has a high vote count for a variety of unrelated reasons;
+e.g., the page is heavily viewed, or people who read reviews of national parks
+are more likely to vote. In contrast, read the two reviews identified through
+our machine learned SR projections as having the most funny or useful text
+content.  The funny review, for a pizza restaurant, is a fictional comedic
+story. The useful review contains a high proportion of business photos ({\it
+biz-photo}), which the multinomial model has identified as directly useful.
+
+
+
+\begin{figure}[p]
+\begin{center}\small
+\framebox[0.95\textwidth]{
+\parbox{0.9\textwidth}{
+\setstretch{1.2}
+
+\vskip .5cm
+{\bf Funniest 50-100 word review, by SR projection $\bs{z_{\tt funny}}$.}
+
+\vskip .2cm
+{\it Dear La Piazza al Forno: We need to talk. I don't quite know how to say this so I'm just going to come out with it. I've been seeing someone else. How long? About a year now. Am I in love? Yes. Was it you? It was. The day you decided to remove hoagies from your lunch menu, about a year ago, I'm sorry, but it really was you...and not me.  Hey... wait... put down that pizza peel... try to stay calm... please? [Olive oil container whizzing past head] Please! Stop throwing shit at me... everyone breaks up on social media these days... or haven't you heard?  Wow, what a Bitch!}
+
+\vskip .5cm
+{\bf Most useful 50-100 word review, by SR projection $\bs{z_{\tt useful}}$.}
+
+\vskip .2cm
+{\it  We found Sprouts shortly after moving to town.  There's a nice selection of Groceries \& Vitamins.  It's like a cheaper, smaller version of Whole Foods.
+[biz-photo] [biz-photo] We shop here at least once a week.  I like their selection of Peppers....I like my spicy food! [biz-photo][biz-photo][biz-photo] Their freshly made Pizza isn't too bad either. [biz-photo] Overall, it's a nice shopping experience for all of us. Return Factor - 100\%}
+
+\vskip .5cm
+{\bf Funniest and most useful 50-100 word review, as voted by Yelp users\\ (votes normalized by square root of review age).}
+
+\vskip .2cm{\it
+I use to come down to Coolidge quite a bit and one of the cool things I use to do was come over here and visit the ruins.  A great piece of Arizona history!  Do you remember the Five C's?  Well, this is cotton country. The Park Rangers will tell you they don't really know how old the ruins are, but most guess at around 600 years plus.  But thanks to a forward thinking US Government, the ruins are now protected by a 70 foot high shelter.  Trust me, it comes in handy in July and August, the two months I seem to visit here most.  LOL.  I would also recommend a visit to the bookstore.  It stocks a variety of First Nation history, as well as info on the area.
+  http://www.nps.gov/cagr/index.htm.  While you are in Coolidge, I would recommend the Gallopin' Goose for drinks or bar food, and Tag's for dinner.  Both are great!}
+\vskip .5cm
+}}
+\end{center}
+\caption{\label{threerev} Illustration of the information contained in sufficient projections
+$\bm{z}$.  The top two reviews are those, amongst all where $m\in (50,100)$,
+with highest SR projection scores into the {\tt funny} and {\tt useful}
+attribute spaces.  For comparison, we also show the single 50-100 word review
+with highest values for both $v_{\tt funny}$ and $v_{\tt useful}$ (recall that
+these are vote totals per square root review age).  Note that, since variance
+of $\bm{z}$ increases with $m$, high scoring reviews tend to be longer.  One
+can also, as in
+\cite{taddy_multinomial_2013}, normalize by length and work with $\bm{z}/m$.
+On this scale, the funniest review is `{\it Holy Mother of God}' and the most
+useful review is `{\it Ask for Nick!}'.}
+\end{figure}
+
+
 
 The reason one would want to use IR is its efficiency.  Say $D$, the dimension
 of $\bm{x}_i$, is big relative to $n$ and that estimation of the parameters in
@@ -823,7 +850,7 @@ rows of $\bm{C}/\bm{m}$ are word proportions $\bm{c}_i/m_i$.
 
 \begin{figure}
 \vskip -.2cm
-\hskip .5in \includegraphics[width=5.2in]{../graphs/yelp_cv}
+\hskip .5in \includegraphics[width=5.5in]{../graphs/yelp_cv}
 \vskip -.2cm
 \caption{\label{yelp_cv} {\it Yelp}.  20-fold OOS  prediction of $\log(y_i +1)$, where $y_i$ is a reviews combined f/u/c votes.  For both inverse regression
 (IR) procedures, penalization was selected inside the experiment via independent Poisson AIC.  The lines and points mark mean OOS MSE, and standard errors are too narrow to see. }
@@ -857,6 +884,16 @@ can be exploited after MNIR dimension reduction.
 \subsection{Confounder adjustment in treatment effect estimation}
 
 This reduces our confounder dimension from around 5 million down to 12624.
+
+\begin{table}\small
+\begin{tabular}{l|ccc}
+& Marginal & Conditional on non-text covariates & Adding and interacting text SR \\
+\cline{2-4}
+Effect estimate & 0.003 & 0.015 & 0.019
+\end{tabular}
+\caption{Estimated effect of user experience (log number of reviews) on number of stars above business average.  Each corresponds to different levels of confounder adjustment, increasing from left to right.}
+\end{table}
+
 
 
 Machine learning feats are nice -- e.g., OOS $R^2$ greater than 50\% on the
@@ -921,9 +958,7 @@ predictability of $\log y_i$ from $\bm{x}_i$ and of $d_i$ from $\bm{x}_i$.  To
 put it another way, an ideal version of (\ref{teffects}) would have $\ds{E}[\log y_i] = \beta_0 + d_i\theta  + \beta_y \ds{E}[\log y_i
 | \bm{x}_i] + \beta_d \ds{E}[d_i | \bm{x}_i]$.  Without the $\beta_d \ds{E}[d_i | \bm{x}_i]$ 
 term, estimated $\hat\theta$ will be confounded with any effects from
-$a_{ij}$ that can be explained by the correlated bit of $d_i$.  See
-\citet{belloni_inference_2012} for a much more rigorous and detailed
-discussion of these issues.
+$a_{ij}$ that can be explained by the correlated bit of $d_i$. 
 
 For the same reasons, including in forward regression both $\bm{z}_i^v$ {\it
 and} the relevant elements of $\bm{z}_i^u$, say $\bm{z}_i^d$ where $\bm{d}_i$
@@ -998,10 +1033,10 @@ DMR fits nicely in the MR framework.  Our map step tokenizes your unstructured d
 Combine totals $m_i$ and attributes $\bm{v}_i$ into a single table, say \cd{VM}. This info can be generated during map or extracted in earlier steps.  Cache \cd{VM} so it is available to your reducers.
 
 \vskip .25cm
-{\bf Reduce:} For each token key `$j$', obtain a regularization path for Poisson regression of counts $c_{ij}$ on attributes $\bm{v}_i$ with $\hat\mu_i = \log m_i$.  Apply AIC to select a segment of coefficients from this path, say $\bs{\hat\varphi}_j$, and output nonzero elements in sparse triplet format: \cd{word|document|count}. 
+{\bf Reduce:} For each token key `$j$', obtain a regularization path for Poisson regression of counts $c_{ij}$ on attributes $\bm{v}_i$ with $\hat\mu_i = \log m_i$.  Apply AICc to select a segment of coefficients from this path, say $\bs{\hat\varphi}_j$, and output nonzero elements in sparse triplet format: \cd{word|attribute|phi}. 
 
 \vskip .25cm
-Each reducer writes coefficients $\bs{\hat\varphi}_j$ of interest to file, and maintains a running total for SR projection, $\bm{z}_i += \bm{c}_i'\bs{\hat \varphi_j}$, output as say \cd{Z.r} for the $r^{th}$ reducer.  When all machines are done we aggregate \cd{Z.r} 
+Each reducer writes coefficients $\bs{\hat\varphi}_j$ of interest to file, and maintains a running total for SR projection, $\bm{z}_i +\!\!= \bm{c}_i'\bs{\hat \varphi_j}$, output as say \cd{Z.r} for the $r^{th}$ reducer.  When all machines are done we aggregate \cd{Z.r} 
 to get the complete projections.  
 
 ~
