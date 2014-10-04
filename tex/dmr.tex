@@ -631,25 +631,32 @@ marginal correlations.}
 
 \subsection{Sufficient reduction}
 
-Inverse regression (IR) is a general strategy for dimension reduction when
-trying to predict $K$ dimensional attributes $\bm{v}_i$ from high dimensional
-(say, of length $D \gg K$) covariates $\bm{x}_i$.  IR is a three stage
-procedure: first, fit an {\it inverse model} for $\bm{x}_i | \bm{v}_i$;
-second, use the inverse model to obtain {\it sufficient reduction} (SR) scores
-$\bm{z}_i$ as reduced dimension projections from $\bm{x}_i$; third, fit a low
-dimensional {\it forward regression model} for $\bm{v}_i | \bm{z}_i$.   In
-this process the inverse distribution takes the form $\bm{x}_i \sim
-f(\bs{\Phi}\bm{v}_i)$, where $f$ is some parametric (typically natural
-exponential family) distribution that depends upon $\bm{v}_i$ through the
-linear operator $\bs{\Phi}$, a $D\times K$ matrix of loadings.  The SR
-projection is then the $K$-vector $\bm{z}_i = \bm{x}_i'\bs{\Phi}$. Under
-certain conditions, it  holds that $\bm{x}_i \indep \bm{v}_i \mid \bm{z}_i$.
-Thus all information in $\bm{x}_i$ relevant to $\bm{v}_i$ is summarized in
-$\bm{z}_i$, and to predict $\bm{v}_i$ we need model only the $K$-variate
-regression of $\bm{v}_i$ on $\bm{z}_i$. See \citet{cook_fisher_2007} for an
-overview.
+The coefficient estimates of the previous section, resolving the system of
+direct relationships between words and attributes,  provide a rich basis for
+story telling and exploratory analysis. For many, this is either the end goal
+or a jumping-off point (e.g., to experimental testing for hypotheses generated
+by this exploration).  But in our practice, the primary reason for fitting big
+multinomial models is as a tool for {\it dimension reduction}, mapping from
+the original $d$-dimensional text down to univariate indices that contain all
+information relevant to a given attribute.  This section describes how the fitted model provides such a tool.
 
-Since the estimated loadings $\bs{\phi}_k$ are partial effects, controlling for the influence of other attributes, the SR projections will also correspond to partial rather than marginal association.
+
+
+Another advantage of MNIR is business oriented: it is a practical way to
+organize information.  In Big data environments, the $\bm{v}_i$ typically
+contain subsets of attributes that will variously be treated as known or
+unknown (i.e., conditioned upon or predicted) in future analyses.  For
+example, at a marketing firm $\bm{c}_i$ could be counts for website visits by
+a specific computer, while $\bm{v}_i$ contains geographic and demographic
+information along with any observed purchasing behavior.
+Given a fitted MNIR, the massive set of $\bm{c}_i$ counts can be
+made available in compact $\bm{z}_i$ scores after mapping through
+$\bs{\Phi}$.  For the analyst to include text data in any modeling related to
+$\bm{v}_i$ they then need only grab the relevant dimensions of $\bm{z}_i$.
+We'll see this tactic in practice in Section \ref{YELP}:  text
+projections on review popularity used first in prediction, and then
+augmented with projections onto user characteristics for an inference problem.
+Since the estimated loadings $\bs{\phi}_k$ are partial effects --  influence of other attributes has been controlled for -- the SR projections will also correspond to partial rather than marginal association.
 
 Consider the correlation matrices in Figure \ref{zcor}.  The original vote
 attributes  are highly positively correlated, while the text projections are
@@ -662,7 +669,7 @@ uncorrelated with star rating, but for the text projections we see both negative
 (\cd{funny},\cd{useful}) and positive (\cd{cool}) association.
 
 
-\begin{figure}[h]
+\begin{figure}[htb]
 \setstretch{1.1} \small 
 \vskip .25cm
 {\bf Correlation matrices}
@@ -734,12 +741,31 @@ with highest values for both $v_{\tt funny}$ and $v_{\tt useful}$ (recall that
 these are vote totals per square root review age).  Note that, since variance
 of $\bm{z}$ increases with $m$, high scoring reviews tend to be longer.  One
 can also, as in
-\cite{taddy_multinomial_2013}, normalize by length and work with $\bm{z}/m$.
+\cite{taddy_multinomial_2013}, divide the SR projections by document length and work with normalized $z/m$.
 On this scale, the funniest review is `{\it Holy Mother of God}' and the most
 useful review is `{\it Ask for Nick!}'.}
 \end{figure}
 
 
+\subsection{Inverse regression for prediction}
+
+Inverse regression (IR) is a general strategy for dimension reduction when
+trying to predict $K$ dimensional attributes $\bm{v}_i$ from high dimensional
+(say, of length $D \gg K$) covariates $\bm{x}_i$.  IR is a three stage
+procedure: first, fit an {\it inverse model} for $\bm{x}_i | \bm{v}_i$;
+second, use the inverse model to obtain {\it sufficient reduction} (SR) scores
+$\bm{z}_i$ as reduced dimension projections from $\bm{x}_i$; third, fit a low
+dimensional {\it forward regression model} for $\bm{v}_i | \bm{z}_i$.   In
+this process the inverse distribution takes the form $\bm{x}_i \sim
+f(\bs{\Phi}\bm{v}_i)$, where $f$ is some parametric (typically natural
+exponential family) distribution that depends upon $\bm{v}_i$ through the
+linear operator $\bs{\Phi}$, a $D\times K$ matrix of loadings.  The SR
+projection is then the $K$-vector $\bm{z}_i = \bm{x}_i'\bs{\Phi}$. Under
+certain conditions, it  holds that $\bm{x}_i \indep \bm{v}_i \mid \bm{z}_i$.
+Thus all information in $\bm{x}_i$ relevant to $\bm{v}_i$ is summarized in
+$\bm{z}_i$, and to predict $\bm{v}_i$ we need model only the $K$-variate
+regression of $\bm{v}_i$ on $\bm{z}_i$. See \citet{cook_fisher_2007} for an
+overview.
 
 The reason one would want to use IR is its efficiency.  Say $D$, the dimension
 of $\bm{x}_i$, is big relative to $n$ and that estimation of the parameters in
@@ -784,21 +810,6 @@ rather than $n$.  That is, in text mining, estimation variance decreases with
 the number of words rather than the number of documents. Moreover,
 as we see below via our use of random forests, working with the lower dimensional $\bm{z}_i$ scores allows us to apply powerful nonlinear and ensemble learners that would be infeasible (and unstable) on the full dimensional $\bm{x}_i$.
 
-Another advantage of MNIR is business oriented: it is a practical way to
-organize information.  In Big data environments, the $\bm{v}_i$ typically
-contain subsets of attributes that will variously be treated as known or
-unknown (i.e., conditioned upon or predicted) in future analyses.  For
-example, at a marketing firm $\bm{c}_i$ could be counts for website visits by
-a specific computer, while $\bm{v}_i$ contains geographic and demographic
-information along with any observed purchasing behavior.
-Given a fitted MNIR, the massive set of $\bm{c}_i$ counts can be
-made available in compact $\bm{z}_i$ scores after mapping through
-$\bs{\Phi}$.  For the analyst to include text data in any modeling related to
-$\bm{v}_i$ they then need only grab the relevant dimensions of $\bm{z}_i$.
-We'll see this tactic in practice in Section \ref{YELP}:  text
-projections on review popularity used first in prediction, and then
-augmented with projections onto user characteristics for an inference problem.
-
 The final advantage of MNIR has been computational.
 \cite{taddy_multinomial_2013,taddy_measuring_2013} work with very small
 attribute sets, where $K<10$ and often $K=1$.  Since sums of multinomials with
@@ -828,8 +839,6 @@ include a big-$K$ set of explanatory attributes, possibly including many fixed
 or latent effects.   This requires a new computational framework, and it has
 driven development of DMR.  The distribution allows MNIR to work on a
 previously impossible scale.
-
-\subsection{Inverse regression for prediction}
 
 Turning to forward regression, denote combined f/u/c votes -- the response of
 interest -- by the $n$-vector $\bm{y}$. We consider prediction of
