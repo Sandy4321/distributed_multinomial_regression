@@ -658,9 +658,9 @@ linear model, with natural parameter $\bs{\eta}_i = [\eta_{i1} \ldots
 \mr{p}(\bm{c}_i) = h(\bm{c}_i)\exp\left[\bm{c}_i'\bs{\eta}_i + A(\bs{\eta}_i)\right]
 \end{equation}
 where $h$ is a function of only data (not $\bs{\eta}_i$) while $A$ is a
-function of only parameters (not $\bm{c}_i)$.  For example, either the full
+function of only parameters (not $\bm{c}_i)$.  Both the full
 multinomial logistic regression model (conditional upon $m_i$) or our
-independent Poissons (conditional upon $\hat\mu_i$) can be written as in
+independent Poissons model (conditional upon $\hat\mu_i$) can be written as in
 (\ref{nef}). Then with $\bs{\Phi} = [\bs{\varphi}_1 \cdots
 \bs{\varphi}_d]$ the $p\times d$ matrix of regression coefficients, we get
 \begin{equation}\label{srproof}
@@ -675,7 +675,7 @@ the regression parameters,  $\bs{\Phi}\bm{c}_i$ is a {\it
 sufficient statistic} for $\bm{v}_i$.  That is, $\bm{v}_i \indep \bm{c}_i \mid
 \bs{\Phi}\bm{c}_i$.
 
-We call $\bm{z}_i = \bs{\Phi}\bm{c}_i$ an {\it SR projection}. In practice, we
+We call $\bm{z}_i = \bs{\Phi}\bm{c}_i$ an SR {\it projection}. In practice, we
 work with estimated SR projections $\bm{z}_i =  \bs{\hat\Phi}\bm{c}_i$ and
 hope that $\bs{\hat\Phi}$ has been estimated well enough for $\bm{z}_i$ to be
 a useful summary \citep[see][for discussion]{taddy_rejoinder:_2013}. In that
@@ -684,7 +684,7 @@ attribute space.  This works just like the {\it rotation} matrix from common
 principal components analysis except that, instead of mapping into latent
 factors,  $\bs{\Phi}$ projects into observed attributes. The resulting
 $\bm{z}_i$ are model-based sufficient statistics, useful in the same roles
-as a traditional sufficient statistic (like $\bar y$). For example, to predict
+as a traditional sufficient statistic (like $\bar x$). For example, to predict
 $v_{ik}$ from $\bm{c}_i$ we can work with  univariate $z_{ik}$ instead of the
 $d$-dimensional original text. In general, SR projections are a simple way to
 organize information in Big data systems.  When new text $\bm{c}_i$ arrives,
@@ -733,7 +733,7 @@ stars &   0 &   0 &   0 &  1 & \hskip 2cm stars &  -0.4 &  -0.2 &  0.5 &  1\\
 \end{tabular}
 \end{center}
 \caption{ \label{zcor} Correlation  for the original review attributes
-in $\bm{a}$ (left) and for $\bm{z}$ (right) SR text projection. }
+in $\bm{v}$ (left) and for $\bm{z}$ (right) SR text projection. }
 \end{figure}
 
 The three 50-100 word reviews in Figure \ref{threerev} provide further
@@ -782,7 +782,7 @@ I use to come down to Coolidge quite a bit and one of the cool things I use to d
 $\bm{z}$.  The top two reviews are those, amongst all where $m\in (50,100)$,
 with highest SR projection scores into the {\tt funny} and {\tt useful}
 attribute spaces.  For comparison, we also show the single 50-100 word review
-with highest values for both $a_{\tt funny}$ and $a_{\tt useful}$ (recall that
+with highest values for both $v_{\tt funny}$ and $v_{\tt useful}$ (recall that
 these are vote totals per square root review age).  Note that, since variance
 of $\bm{z}$ increases with $m$, high scoring reviews tend to be longer.  One
 can also, as in
@@ -794,145 +794,84 @@ useful review is `{\it Ask for Nick!}'.}
 
 \subsection{Inverse regression for prediction}
 
-Inverse regression (IR) is a general strategy for dimension reduction when
-trying to predict $K$ dimensional attributes $\bm{v}_i$ from high dimensional
-(say, of length $D \gg K$) covariates $\bm{x}_i$.  IR is a three stage
-procedure: first, fit an {\it inverse model} for $\bm{x}_i | \bm{v}_i$;
-second, use the inverse model to obtain {\it sufficient reduction} (SR) scores
-$\bm{z}_i$ as reduced dimension projections from $\bm{x}_i$; third, fit a low
-dimensional {\it forward regression model} for $\bm{v}_i | \bm{z}_i$.   In
-this process the inverse distribution takes the form $\bm{x}_i \sim
-f(\bs{\Phi}\bm{v}_i)$, where $f$ is some parametric (typically natural
-exponential family) distribution that depends upon $\bm{v}_i$ through the
-linear operator $\bs{\Phi}$, a $D\times K$ matrix of loadings.  The SR
-projection is then the $K$-vector $\bm{z}_i = \bm{x}_i'\bs{\Phi}$. Under
-certain conditions, it  holds that $\bm{x}_i \indep \bm{v}_i \mid \bm{z}_i$.
-Thus all information in $\bm{x}_i$ relevant to $\bm{v}_i$ is summarized in
-$\bm{z}_i$, and to predict $\bm{v}_i$ we need model only the $K$-variate
-regression of $\bm{v}_i$ on $\bm{z}_i$. See \citet{cook_fisher_2007} for an
-overview.
 
-The reason one would want to use IR is its efficiency.  Say $D$, the dimension
-of $\bm{x}_i$, is big relative to $n$ and that estimation of the parameters in
-$\bm{v}_i |\bm{x}_i$ has a high sampling variance.  Assuming an inverse model
-$f(\bm{x}_i | \bm{v}_i)$ introduces information into the estimation problem (a
-less generous term is `bias') by restricting the relationship between
-$\bm{x}_i$ and $\bm{v}_i$ to the possibilities parameterized by $f$.  If $f$
-is close enough to the truth then this restriction will be useful.  Cook's
-paper includes rigorous efficiency results.  We've found it helpful to make
-analogy to the simple arguments used in the related setting of generative
-classifiers \citep[e.g., as in][for Gaussian
-discrimination]{efron_efficiency_1975}: you  assume higher asymptotic error
-rates (since $\bm{x}_i$ is a higher dimensional random variable to be modeling
-than $\bm{v}_i$) in exchange for getting near to the optimal rate faster
-(e.g., through conditional independence assumptions in the inverse/generative
-distribution).
+Multinomial-based SR projections were originally motivated by \cite{taddy_multinomial_2013} for their use in {\it multinomial inverse regression} \citep[MNIR; see also][]{taddy_measuring_2013}.  Say $v_{iy}$, some element of the attribute vector $\bm{v}_i$, is viewed as a `response' to be predicted for future realizations.  For example, in the original {\tt kaggle} Yelp contest the goal was to predict $v_{i,\tt funny}$, $v_{i,\tt useful}$, or $v_{i,\tt cool}$ -- the vote attributes.  In such applications, an MNIR routine would use the SR projection into $v_{iy}$, $z_{iy} = \sum_j \hat \varphi_{jy} c_{ij}$, to build a {\it forward regression} that predicts $v_{iy}$ from $z_{iy}$, $\bm{v}_{i,-y}$ (attributes ommiting $y$), and $m_i$.\footnote{The SR result that applies here is $v_{iy} \indep \bm{c}_i \mid z_{iy}, \bm{v}_{i,-y}, m_i$. Since sufficiency for $z_{iy}$ from the multinomial factorization is {\it conditional upon $m_i$}, these document totals need to be conditioned upon in forward regression.}  This $p+1$ dimensional regression replaces the $d+p-1$ dimensional one that would have been necessary to predict $v_{iy}$ from $\bm{v}_{i,-y}$ and $\bm{c}_{i}$, the original text counts.
 
-\cite{taddy_multinomial_2013} introduced multinomial inverse regression 
-as a version of IR for dealing with $\bm{x}_i = \bm{c}_i$, covariates that can
-be characterized as high-dimensional count data.  Our primary application is
-in text mining, where $\bm{c}_i$ is a vector of word (or token, phrase,
-etc) counts and $D=\mr{length}(\bm{c}_i)$ is the size of the vocabulary.  The
-model is just logistic regression, with $\eta_{ij} = \alpha_j +
-\bm{v}_i'\bs{\varphi}_j$ the linear model parametrization for the $j^{th}$
-response category (e.g., word) from the $i^{th}$ observation (e.g., document).
-Given $\bs{\hat\Phi} = [\bs{\hat\varphi}_1 \cdots \bs{\hat\varphi}_D]'$
-estimated for this logistic regression, MNIR sufficient reduction scores are
-$\bm{z}_i = \bm{c}_i'\bs{\hat\Phi}/m_i$ and we have that $\bm{v}_i \indep
-\bm{c}_i \mid \bm{z}_i, m_i$. The $1/m_i$ multiplier on here moves projection
-from word counts to proportions, as in
-\cite{taddy_multinomial_2013}, and sufficiency for $\bm{z}_i$ is dependent
-upon $m_i$ because we've conditioned on these totals in the 
-multinomial model.  The algorithm is completed with forward prediction for $\bm{v}_i$ given $[\bm{z}_i,m_i]$; Section \ref{YELP} uses both simple linear regression and a random forest algorithm.
+Estimating an {\it inverse} regression in order to get at another
+{\it forward} regression may seem a strange use of resources.  But there are a
+variety of reasons to consider MNIR. Computationally, through either the
+techniques of this article or the collapsing of
+\cite{taddy_multinomial_2013}, the multinomial regression estimation can occur
+in distribution on many independent machines. This is useful when the full
+count matrix $\bm{C}$ is too big to fit in memory.
+Another reason to use MNIR is for statistical efficiency when $d$ is big
+relative to $n$.  Assuming a multinomial distribution for $\bm{c}_i \mid
+\bm{v}_i$ introduces information into the estimation problem (a less generous
+term is `bias').  In particular, it implies that each of the $M
+= \sum_i m_i$ counts are independent observations, such that the sample size
+for learning $\bs{\Phi}$ becomes $M$ rather than $n$.  That is, 
+estimation variance decreases with the number of words rather than the number
+of documents \cite[see][]{taddy_rejoinder:_2013}.
 
-Analysis, examples, applications of the MNIR framework are in
-\cite{taddy_measuring_2013,taddy_multinomial_2013,taddy_rejoinder:_2013}. 
-There are a number of benefits of the approach.  First, the IR efficiency
-argument is especially simple: assuming a multinomial distribution
-implies that each of the $M = \sum_i m_i$ count elements are independent
-observations, such that the sample size for learning $\bs{\Phi}$ is now $M$
-rather than $n$.  That is, in text mining, estimation variance decreases with
-the number of words rather than the number of documents. Moreover,
-as we see below via our use of random forests, working with the lower dimensional $\bm{z}_i$ scores allows us to apply powerful nonlinear and ensemble learners that would be infeasible (and unstable) on the full dimensional $\bm{x}_i$.
 
-The final advantage of MNIR has been computational.
-\cite{taddy_multinomial_2013,taddy_measuring_2013} work with very small
-attribute sets, where $K<10$ and often $K=1$.  Since sums of multinomials with
-equal probabilities are are also multinomial, one can then {\it collapse} the
-modeled counts across equal level-sets of the covariates without affecting the
-likelihood (continuous covariates can be binned to facilitate collapsing).
-For example, if $v_i$ is a univariate binary attribute (e.g., whether a
-speaker is Republican in the original MNIR paper) then the logistic multinomial regression
-  has only two observations: the combined counts
-corresponding to each of $\{i:v_i=0\}$ and $\{i:v_i=1\}$. Since collapsing can
-occur independently for each dimensions of $\bm{c}_i$,  MNIR  even
-works in settings where the original $n\times D$ count data is too big to
-store on a single machine.
+\begin{table}\setstretch{1.1}
+\begin{center}\vskip -.25cm
+\begin{tabular}{llc|ccc}
+&\multicolumn{2}{c}{\it forward regression}&\multicolumn{3}{c}{\it average out-of-sample $R^2$}\\
+& input variables & dimension & {\tt funny} & {\tt useful} & {\tt cool}\\
+\cline{2-6}
+MNIR + lasso & non-vote attributes, $\bm{C}$ & 25,876 & 0.308 & 0.291 & 0.339\\
+standard lasso & non-vote attributes, $\bm{z}$, $\bm{m}$ & 11,940 & 0.316 & 0.296 & 0.341
+\end{tabular}
+\end{center}
+\vskip -.25cm
+\caption[l]{\label{yelp_cv} {\it Yelp}.  Out-of-sample $R^2$ in prediction for vote attributes (normalized by root review age) in 5-fold CV.  The top row shows a standard lasso regression from the vote attribute onto text and all non-vote attributes, while the bottom row holds results for MNIR followed by lasso regression from the vote attribute onto review length ($m_i$), non-vote attributes, and the corresponding univariate SR projection. }
+\end{table}
 
-However, there are many settings with attributes of  larger dimension, say $K$
-on the order of hundreds or thousands, where such collapsing is impossible.In
-Section \ref{YELP} we have over 400 variables of meta-data associated with
-each restaurant review.  Moreover,  the MNIR model is not very believable if
-$K$ is small -- it seems implausible that only a few factors of interest
-explain the heterogeneity between individual document word counts. The
-arguments in \cite{taddy_multinomial_2013,taddy_rejoinder:_2013} explain how
-MNIR can work even if the inverse model is misspecified on an individual level
-(but is a good fit to the collapsed data).  However, there are many settings
-where this will not hold, and the argument does not apply if you want to
-interpret individual parameters. In such applications one needs to
-include a big-$K$ set of explanatory attributes, possibly including many fixed
-or latent effects.   This requires a new computational framework, and it has
-driven development of DMR.  The distribution allows MNIR to work on a
-previously impossible scale.
 
-Turning to forward regression, denote combined f/u/c votes -- the response of
-interest -- by the $n$-vector $\bm{y}$. We consider prediction of
-$\log(y_i+1)$ using covariates $\bm{u}_i$, review length $m_i$, and the SR
-projections $\bm{z}_i^v = (1/m_i)\bm{c}_i'\bs{\Phi}^v$, with $\bs{\Phi}^v =
-[\bs{\varphi}^a_1 \cdots \bs{\varphi}^a_9]'$  coefficients for the nine
-f/u/c$\times [1,t,t^2]$ variables in $\bm{v}_i$.  Note that we use text SR
-factors only for variables derived from $y_i$; projection onto $\bm{u}_i$ is
-ignored unless we want to reduce bias in estimation of coefficients on
-$\bm{u}_i$. Two algorithms are applied for predicting $\log(1+\bm{y})$ from
-$[\bm{U},\bm{Z}^v,\bm{m}]$: ordinary least-squares (OLS), and a 1024 tree
-random forest \citep[RF;][]{breiman_random_2001} as implemented in the
-\cd{randomForest} package for \cd∫{R}. Results from a 20-fold CV (with each fold left-out for both IR and forward regression)
-are shown in Figure \ref{yelp_cv}.  For comparison, we also
-show results of straightforward lasso linear regression onto the 13,938 + 1 +
-408 =  14,347 column input matrix $[\bm{C}/\bm{m},\bm{m},\bm{V}]$, where
-rows of $\bm{C}/\bm{m}$ are word proportions $\bm{c}_i/m_i$.
 
-\begin{figure}
-\begin{verbatim}
- funny.dtm    funny.z useful.dtm   useful.z   cool.dtm     cool.z 
-     0.308      0.316      0.291      0.296      0.339      0.341 
-\end{verbatim}
-\caption{\label{yelp_cv}}
-\end{figure}
+As an illustration, Table \ref{yelp_cv} shows results for prediction of
+individual f/u/c vote attributes, both through MNIR with lasso forward regression
+and for a standard lasso onto the full text counts.  That is, MNIR fits
+$\ds{E}[v_{iy}] = \beta_0 +
+[\bm{v}_{i,-{\text{f/u/c}}},m_i,z_{iy}]'\bs{\beta}$ while the comparator fits
+$\ds{E}[v_{iy}] = \beta_0 + [\bm{v}_{i,-{\text{f/u/c}}},\bm{c}_i]'\bs{\beta}$,
+where $\bm{v}_{i,-{\text{f/u/c}}}$  denotes all non-vote attributes.  For MNIR
+each $\bs{\hat \Phi}$ (hence, $z_{iy}$) is also  estimated using only the
+training sample, and  in both cases prediction rules were selected via AICc
+minimization along the $L_1$ regularization path. We see  that
+MNIR forward regression, replacing 13,938 covariates from $\bm{c}_i$ with just
+the two numbers $z_{yi}$ and $m_i$, does not suffer against the full lasso
+comparator (indeed, it is very slightly better in each case). Such performance
+is  typical of what we've observed in application.\footnote{In
+\cite{taddy_multinomial_2013}, the MNIR routines more significantly outperform
+lasso comparators in OOS prediction. However, the datasets used in that paper
+are both very small, with $M\gg n$. Thus our statistical efficiency argument
+-- that for MNIR estimation variance decreases with $M$ instead of $n$ -- is
+   working heavily in favor of MNIR. Here, even though $M > n$,  vocabulary
+   size $d$ is smaller than $n$ and linear regression is already plenty
+   efficient.} This is not evidence that the text counts do not matter: each
+   full lasso estimates at least 4,000 terms having non-zero coefficients.
+   Rather, the multinomial model is a good enough fit that the factorization
+   results of (\ref{srproof}) apply and all relevant information is contained
+   in the SR projection.\footnote{We have also found success applying
+   nonlinear learning (e.g., trees) in forward regression after SR projection.
+   Methods that are too expensive or unstable on the full text work nicely on
+   the reduced dimension subspace.}
 
-Figure \ref{yelp_cv} shows that average performance of the IR-linear algorithm
-(MNIR + OLS), using AIC model selection for IR coefficients, is no better than
-the best straightforward lasso specification (although MNIR is being put to a
-tougher test here: selecting penalization {\it within} the CV experiment
-instead of finding the fixed penalty that performs best across folds). Such
-performance is  typical of what we've observed in Big data application.
-\footnote{In the comparisons of \cite{taddy_multinomial_2013}, the IR linear
-model consistently outperforms a linear lasso comparator in OOS prediction and
-in compute time.  However, the datasets used in that paper are both very
-small, with $M\gg n$.  Thus the simple argument in the rejoinder
-\cite{taddy_rejoinder:_2013} Proposition 1.1 -- that, for multinomial IR,
-estimation variance decreases with $M$ instead of $n$ -- is working heavily in
-favor of IR. Examples like the yelp application here are more typical in Big
-data: even though $M > n$, the vocabulary size $D$ is smaller than $n$ and
-straightforward linear regression is already plenty efficient.}   The
-advantage of MNIR with linear forward regression is then computational: it
-works in complete distribution  and is thus massively scalable.  However the
-random forest results show another advantage of MNIR: one can deploy flexible
-nonlinear machine learning on the low dimensional space resulting from SR
-projection. Methods that are too computationally expensive or unstable on the
-full covariate set are easy and fast to run on the reduced dimension subspace;
-our experience with tree methods finds much rich interaction structure that
-can be exploited after MNIR dimension reduction.
+
+Note that the MNIR forward regression ignores projection from text onto any
+other non-vote attributes. This is because those attributes are conditioned
+upon in forward regression.  Indeed,
+\cite{taddy_multinomial_2013,taddy_rejoinder:_2013} argue that, in prediction
+for a single variable, you only need fit the multinomial dependence between
+counts and that single variable.  This yields SR projection based on marginal
+association, which can work as well as that based on partial
+association for simple predictions. The benefit of fitting models for
+high-dimensinal $\bm{v}_i$ is that we are then able to interpret the resulting
+partial effects and SR projections, as in Sections
+\ref{YELP}.2-\ref{YELP}.3.  It is also useful in more structured prediction
+settings, as in the next section.
 
 \subsection{Confounder adjustment in treatment effect estimation}
 
