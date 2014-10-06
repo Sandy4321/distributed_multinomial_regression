@@ -631,36 +631,81 @@ marginal correlations.}
 
 \subsection{Sufficient reduction}
 
-The coefficient estimates of the previous section, resolving the system of
-direct relationships between words and attributes,  provide a rich basis for
-story telling and exploratory analysis. For many, this is either the end goal
-or a jumping-off point (e.g., to experimental testing for hypotheses generated
-by this exploration).  But in our practice, the primary reason for fitting big
+The previous section's coefficient estimates, resolving a complex system of
+ relationships between words and attributes,  provide a rich basis for
+story telling and exploratory analysis. For many, this is either the end-goal
+or a jumping-off point (e.g., to experiments testing hypotheses generated
+in exploration).  But in our practice, a primary reason for fitting big
 multinomial models is as a tool for {\it dimension reduction}, mapping from
 the original $d$-dimensional text down to univariate indices that contain all
-information relevant to a given attribute.  This section describes how the fitted model provides such a tool.
+information relevant to a given attribute.  
+
+\cite{cook_fisher_2007} outlines use of regression models with
+high-dimensional response as a map to project from that response onto
+interesting covariates.   \cite{taddy_multinomial_2013} extends the idea in
+our context of big multinomials, motivated by applications in text analysis.
+Both of these articles are focused on {\it inverse regression} (IR), a
+technique wherein the fitted model map is applied for prediction of unobserved
+covariates (e.g., the votes associated with new review text, as in Section
+\ref{YELP}.4).  However, the IR algorithms are prefaced on a more basic
+concept of {\it sufficient reduction} (SR), which is useful beyond its
+application in IR prediction.
+
+Consider observation $\bm{c}_i$ from a $d$ dimensional exponential family
+linear model, with natural parameter $\bs{\eta}_i = [\eta_{i1} \ldots
+\eta_d]'$,  $\eta_{ij} = \alpha_j + \bm{v}_i\bs{\varphi}_j$, such that
+\begin{equation}\label{nef}
+\mr{p}(\bm{c}_i) = h(\bm{c}_i)\exp\left[\bm{c}_i'\bs{\eta}_i + A(\bs{\eta}_i)\right]
+\end{equation}
+where $h$ is a function of only data (not $\bs{\eta}_i$) while $A$ is a
+function of only parameters (not $\bm{c}_i)$.  For example, either the full
+multinomial logistic regression model (conditional upon $m_i$) or our
+independent Poissons (conditional upon $\hat\mu_i$) can be written as in
+(\ref{nef}). Then with $\bs{\Phi} = [\bs{\varphi}_1 \cdots
+\bs{\varphi}_d]$ the $p\times d$ matrix of regression coefficients, we get
+\begin{equation}\label{srproof}
+\mr{p}(\bm{c}_i) = h(\bm{c}_i)e^{\bm{c}_i'\bs{\alpha}}
+\exp\left[\bm{c}_i'\bs{\Phi}'\bm{v}_i + A(\bs{\Phi}'\bm{v}_i)\right] = 
+\tilde h(\bm{c}_i)g(\bs{\Phi}\bm{c}_i,\bm{v}_i),
+\end{equation}
+so that the likelihood factorizes into a function of $\bm{c}_i$ only and
+another function of $\bm{v}_i$ that depends upon $\bm{c}_i$ only through the
+projection $\bs{\Phi}\bm{c}_i$.  This implies that, conditional upon
+the regression parameters,  $\bs{\Phi}\bm{c}_i$ is a {\it
+sufficient statistic} for $\bm{v}_i$.  That is, $\bm{v}_i \indep \bm{c}_i \mid
+\bs{\Phi}\bm{c}_i$.
+
+We call $\bm{z}_i = \bs{\Phi}\bm{c}_i$ an {\it SR projection}. In practice, we
+work with estimated SR projections $\bm{z}_i =  \bs{\hat\Phi}\bm{c}_i$ and
+hope that $\bs{\hat\Phi}$ has been estimated well enough for $\bm{z}_i$ to be
+a useful summary \citep[see][for discussion]{taddy_rejoinder:_2013}. In that
+case, $\bm{\hat\Phi}$ provides a linear map from text into the $p$-dimensional
+attribute space.  This works just like the {\it rotation} matrix from common
+principal components analysis except that, instead of mapping into latent
+factors,  $\bs{\Phi}$ projects into observed attributes. The resulting
+$\bm{z}_i$ are model-based sufficient statistics, useful in the same roles
+as a traditional sufficient statistic (like $\bar y$). For example, to predict
+$v_{ik}$ from $\bm{c}_i$ we can work with  univariate $z_{ik}$ instead of the
+$d$-dimensional original text. In general, SR projections are a simple way to
+organize information in Big data systems.  When new text $\bm{c}_i$ arrives,
+one need just feed it through $\bs{\Phi}$ to obtain $\bm{z}_i$ indices which
+can be summarized, plotted, and analyzed as desired.
 
 
-
-Another advantage of MNIR is business oriented: it is a practical way to
-organize information.  In Big data environments, the $\bm{v}_i$ typically
-contain subsets of attributes that will variously be treated as known or
-unknown (i.e., conditioned upon or predicted) in future analyses.  For
-example, at a marketing firm $\bm{c}_i$ could be counts for website visits by
-a specific computer, while $\bm{v}_i$ contains geographic and demographic
-information along with any observed purchasing behavior.
-Given a fitted MNIR, the massive set of $\bm{c}_i$ counts can be
-made available in compact $\bm{z}_i$ scores after mapping through
-$\bs{\Phi}$.  For the analyst to include text data in any modeling related to
-$\bm{v}_i$ they then need only grab the relevant dimensions of $\bm{z}_i$.
-We'll see this tactic in practice in Section \ref{YELP}:  text
-projections on review popularity used first in prediction, and then
-augmented with projections onto user characteristics for an inference problem.
-Since the estimated loadings $\bs{\phi}_k$ are partial effects --  influence of other attributes has been controlled for -- the SR projections will also correspond to partial rather than marginal association.
-
-Consider the correlation matrices in Figure \ref{zcor}.  The original vote
-attributes  are highly positively correlated, while the text projections are
-either nearly independent (e.g., {\tt useful} against either \cd{funny} or
+It is important to emphasize that, since  estimated loadings
+$\hat\varphi_{ik}$ are partial effects (influence of other attributes has
+been controlled for), $z_{ik}$ will also correspond to partial rather
+than marginal association. As another way to see this, note that the
+ factorization in (\ref{srproof}) is easily manipulated to show
+sufficiency for each individual $z_{ik}$ conditional on $\bm{v}_{i,-k}$, our
+vector of attributes ommiting the $k^{th}$.  Thus SR reduces
+dimension into a space of information {\it directly} relevant to an attribute
+of interest, where influence of text variation due to other 
+attributes has been removed or minimized. Consider the correlation matrices in
+Figure
+\ref{zcor}.  The original vote attributes  are highly positively correlated,
+while the text projections are either nearly independent (e.g., {\tt useful}
+against either \cd{funny} or
 \cd{cool}) or strongly negatively correlated (\cd{funny} and \cd{cool}).  This
 suggests that there are underlying factors that encourage {\it votes in any
 category}; only after controlling for these confounding factors do we see the
@@ -691,17 +736,17 @@ stars &   0 &   0 &   0 &  1 & \hskip 2cm stars &  -0.4 &  -0.2 &  0.5 &  1\\
 in $\bm{a}$ (left) and for $\bm{z}$ (right) SR text projection. }
 \end{figure}
 
-The three 50-100 word reviews in Figure \ref{threerev} provide another
-example.  A single review (bottom) on a historical site scores highest in
-$a_{\tt funny}$ and $a_{\tt useful}$  attributes (and also
-in $a_{\tt funny}$).  The review is neither dry nor useless, but we imagine
- it has a high vote count for a variety of unrelated reasons;
-e.g., the page is heavily viewed, or people who read reviews of national parks
-are more likely to vote. In contrast, read the two reviews identified through
-our machine learned SR projections as having the most funny or useful text
-content.  The funny review, for a pizza restaurant, is a fictional comedic
-story. The useful review contains a high proportion of business photos ({\it
-biz-photo}), which the multinomial model has identified as directly useful.
+The three 50-100 word reviews in Figure \ref{threerev} provide further
+illustration.  A single review (bottom) of a historical site scores highest in
+${\tt funny}$ and ${\tt useful}$  attributes (and also in ${\tt cool}$). The
+review is neither dry nor useless, but we imagine its high vote count has been
+influenced by other factors; e.g., the page is heavily viewed, or
+people who read reviews of national parks are more likely to vote. In
+contrast, read the two reviews identified through our machine-learned SR
+projections as having the most funny or useful text content.  The funny
+review, for a pizza restaurant, is a fictional comedic story. The useful
+review contains a high proportion of business photos ({\it biz-photo}), which
+the multinomial model has identified as directly useful.
 
 
 
@@ -737,7 +782,7 @@ I use to come down to Coolidge quite a bit and one of the cool things I use to d
 $\bm{z}$.  The top two reviews are those, amongst all where $m\in (50,100)$,
 with highest SR projection scores into the {\tt funny} and {\tt useful}
 attribute spaces.  For comparison, we also show the single 50-100 word review
-with highest values for both $v_{\tt funny}$ and $v_{\tt useful}$ (recall that
+with highest values for both $a_{\tt funny}$ and $a_{\tt useful}$ (recall that
 these are vote totals per square root review age).  Note that, since variance
 of $\bm{z}$ increases with $m$, high scoring reviews tend to be longer.  One
 can also, as in
@@ -847,10 +892,10 @@ projections $\bm{z}_i^v = (1/m_i)\bm{c}_i'\bs{\Phi}^v$, with $\bs{\Phi}^v =
 [\bs{\varphi}^a_1 \cdots \bs{\varphi}^a_9]'$  coefficients for the nine
 f/u/c$\times [1,t,t^2]$ variables in $\bm{v}_i$.  Note that we use text SR
 factors only for variables derived from $y_i$; projection onto $\bm{u}_i$ is
-ignored unless we want to reduce bias in estimation of
-coefficients on  $\bm{u}_i$. Two algorithms are applied for predicting
-$\log(1+\bm{y})$ from $[\bm{U},\bm{Z}^v,\bm{m}]$: ordinary least-squares (OLS), and
-a 1024 tree random forest \citep[RF;][]{breiman_random_2001} as implemented in the
+ignored unless we want to reduce bias in estimation of coefficients on
+$\bm{u}_i$. Two algorithms are applied for predicting $\log(1+\bm{y})$ from
+$[\bm{U},\bm{Z}^v,\bm{m}]$: ordinary least-squares (OLS), and a 1024 tree
+random forest \citep[RF;][]{breiman_random_2001} as implemented in the
 \cd{randomForest} package for \cd∫{R}. Results from a 20-fold CV (with each fold left-out for both IR and forward regression)
 are shown in Figure \ref{yelp_cv}.  For comparison, we also
 show results of straightforward lasso linear regression onto the 13,938 + 1 +
@@ -858,13 +903,12 @@ show results of straightforward lasso linear regression onto the 13,938 + 1 +
 rows of $\bm{C}/\bm{m}$ are word proportions $\bm{c}_i/m_i$.
 
 \begin{figure}
-\vskip -.2cm
-\hskip .5in \includegraphics[width=5.5in]{../graphs/yelp_cv}
-\vskip -.2cm
-\caption{\label{yelp_cv} {\it Yelp}.  20-fold OOS  prediction of $\log(y_i +1)$, where $y_i$ is a reviews combined f/u/c votes.  For both inverse regression
-(IR) procedures, penalization was selected inside the experiment via independent Poisson AIC.  The lines and points mark mean OOS MSE, and standard errors are too narrow to see. }
+\begin{verbatim}
+ funny.dtm    funny.z useful.dtm   useful.z   cool.dtm     cool.z 
+     0.308      0.316      0.291      0.296      0.339      0.341 
+\end{verbatim}
+\caption{\label{yelp_cv}}
 \end{figure}
-
 
 Figure \ref{yelp_cv} shows that average performance of the IR-linear algorithm
 (MNIR + OLS), using AIC model selection for IR coefficients, is no better than
@@ -985,12 +1029,11 @@ the text information.
 \section{Discussion}
 \label{END}
 
-Distributed estimation for big multinomial regression opens the opportunity
-for such models to be applied on a new  scale, one that is limited only by the
+Distributed estimation for multinomial regression allows such models to be applied on a new  scale, one that is limited only by the
 number of machines you are able procure. This advance is important for applied
 work.  The collapsing of
 \cite{taddy_multinomial_2013} is useful in prediction problems, but today
-we more often find ourselves addressing inference questions.  High dimensional
+we more often find ourselves addressing inference and interpretation.  High dimensional
 attribute sets are essential for such problems because multinomial model needs
 to believable. This is in contrast to pure prediction problems where, as
 outlined in \cite{taddy_rejoinder:_2013}, one can model inverse regression
