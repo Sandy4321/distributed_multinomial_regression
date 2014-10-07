@@ -10,6 +10,8 @@
 \usepackage[small]{caption}
 \usepackage{algorithm}
 
+\graphicspath{{/Users/mtaddy/project/distributed_multinomial_regression/graphs/}}
+
 \newtheorem{prop}{\sc Proposition}[section]
 \renewcommand{\qedsymbol}{}
 
@@ -537,7 +539,7 @@ partial effect}. At the extreme of $\tau = \infty$, any collinearity with
 $\bm{b}_i$ is be completely removed from the estimated $\bs{\hat\varphi}_j^a$.
 
 As outlined in Appendix \ref{MR}, counts for the $14k$ words are partitioned
-into 128 files.  Each file is then read by one of 64 workstations, which
+into 256 files.  Each file is then read by one of 64 workstations, which
 itself uses 16 cores in parallel to run through the Poisson regressions. Each
 individual regression is a full gamma lasso path solution over grids of 100
 $\lambda_t$ squelch values, with weights $\omega_{jk}^{at},\omega_{jk}^{bt}$
