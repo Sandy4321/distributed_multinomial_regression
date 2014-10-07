@@ -405,14 +405,14 @@ with AICc selection marked by a vertical dashed line.
 
 
 \begin{figure}[hb]
-\includegraphics[width=6.25in]{../graphs/fgl_coef}
+\includegraphics[width=6.25in]{fgl_coef}
 \caption{\label{fgl_coef} {\it Forensic Glass}. Regularization paths for each glass-type, with AICc selections marked.}
 \end{figure}
 
 
 \begin{figure}
 \begin{center}
-\includegraphics[width=5.75in]{../graphs/fgl_cv}
+\includegraphics[width=5.75in]{fgl_cv}
 \end{center}
 \vskip -.5cm
 \caption{\label{fgl_cv}  {\it Forensic Glass}. OOS deviance samples for \cd{dmr} and \cd{glment} in a 20-fold OOS experiment.  }\end{figure}
@@ -429,7 +429,7 @@ multinomial logistic regression as implemented in the \cd{glmnet} package for
 
 
 \begin{figure}[h]\vskip .5cm
-\hskip 4cm\includegraphics[width=3.25in]{../graphs/fgl_mu}
+\hskip 4cm\includegraphics[width=3.25in]{fgl_mu}
 \caption{\label{fgl_mu} {\it Forensic Glass}.  The  conditional MLEs $\mu^\star_i$ implied at our DMR coefficient estimates.   }
 \vskip -.25cm
 \end{figure}
@@ -547,7 +547,7 @@ sufficient reduction projection of our next section) takes around 1/2 hour.
 
 
 \begin{figure}[b!]
-\hspace{-.25in}\includegraphics[width=6.75in]{../graphs/yelp_ir_paths}
+\hspace{-.25in}\includegraphics[width=6.75in]{yelp_ir_paths}
 \caption{\label{yelp_ir} {\it Yelp}.  
 Poisson regression regularization paths for counts of the tokens \cd{:-)},
 \cd{:-/}, and
@@ -820,8 +820,8 @@ of documents \cite[see][]{taddy_rejoinder:_2013}.
 &\multicolumn{2}{c}{\it forward regression}&\multicolumn{3}{c}{\it average out-of-sample $R^2$}\\
 & input variables & dimension & {\tt funny} & {\tt useful} & {\tt cool}\\
 \cline{2-6}
-MNIR + lasso & non-vote attributes, $\bm{C}$ & 25,876 & 0.308 & 0.291 & 0.339\\
-standard lasso & non-vote attributes, $\bm{z}$, $\bm{m}$ & 11,940 & 0.316 & 0.296 & 0.341
+standard lasso & non-vote attributes, $\bm{C}$ & 25,876 & 0.308 & 0.291 & 0.339\\
+ MNIR + lasso & non-vote attributes, $\bm{z}$, $\bm{m}$ & 11,940 & 0.316 & 0.296 & 0.341
 \end{tabular}
 \end{center}
 \vskip -.25cm
