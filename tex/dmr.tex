@@ -878,26 +878,25 @@ settings, as in the next section.
 In our final example, we illustrate use of SR projections as convenient low
 dimensional {\it controls} in treatment effect estimation.  The task here has
 a particular attribute, say $d$, whose effect on another, say $y$, you want to
-estimate.  The problem is that you want to know what will happen to $y$ if $d$
-changes independently from  the other attributes, even though everything is
+estimate.  You want to know what will happen to $y$ if $d$ changes
+independently from  the other attributes.  Unfortunately, everything is
 collinear in the data and both $y$ and $d$ could be correlated to other
-unobserved confounders.  The best that you can do is to estimate the treatment
-effect -- that of $d$ on $y$ -- while controlling for observable potential
-confounders.  In text analysis, this includes controlling for the
-text content itself.
+unobserved confounders.  Your best option is to estimate the treatment effect
+-- that of $d$ on $y$ -- while controlling for observable potential
+confounders.  In text analysis, this includes controlling for the text content
+itself.
 
 
 Consider estimating the effect of a user's experience -- the number of reviews
 that they have written -- on their expected rating.  That is, are experienced
 users more critical, perhaps because they've become more discerning?  Or do
-they tend to give more positive reviews, perhaps because new users only bother
-to give negative feedback or because the community norms encourage a high
-average rating? It is hard to imagine getting firm evidence in either
-direction without running a randomized trial -- we will always be worried
-about the effect of an omitted confounder.  However, we can try our best and
-condition on available information.    In particular, we can condition on
-review content to ask the question: even given the same review message, would
-an experienced user give more or less stars than a newbie?
+they tend to give more positive reviews, perhaps because community norms
+encourage a high average rating? It is hard to imagine getting firm evidence
+in either direction without running a randomized trial -- we will always be
+worried about the effect of an omitted confounder.  However, we can try our
+best and condition on available information.    In particular, we can
+condition on  content to ask the question: even given the same review
+message, would an experienced user give more or less stars than a newbie?
 
 The response attribute, $v_{iy}$, is  {\it star rating}. The treatment, $v_{id}$, is the log {\it number of reviews} by the author
 (including the current review, so never less than one).  Results for
@@ -948,7 +947,7 @@ removed.}
 \label{END}
 
 Distributed estimation for multinomial regression allows such models to be applied on a new  scale, one that is limited only by the
-number of machines you are able procure. This advance is important for applied
+number of machines you are able to procure. This advance is important for applied
 work.  The collapsing of
 \cite{taddy_multinomial_2013} is useful in prediction problems, but today
 we more often find ourselves addressing inference and interpretation.  High dimensional
