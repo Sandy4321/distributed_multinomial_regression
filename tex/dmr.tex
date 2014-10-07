@@ -868,102 +868,81 @@ for a single variable, you only need fit the multinomial dependence between
 counts and that single variable.  This yields SR projection based on marginal
 association, which can work as well as that based on partial
 association for simple predictions. The benefit of fitting models for
-high-dimensinal $\bm{v}_i$ is that we are then able to interpret the resulting
+high-dimensional $\bm{v}_i$ is that we are then able to interpret the resulting
 partial effects and SR projections, as in Sections
 \ref{YELP}.2-\ref{YELP}.3.  It is also useful in more structured prediction
 settings, as in the next section.
 
 \subsection{Confounder adjustment in treatment effect estimation}
 
-This reduces our confounder dimension from around 5 million down to 12624.
+In our final example, we illustrate use of SR projections as convenient low
+dimensional {\it controls} in treatment effect estimation.  The task here has
+a particular attribute, say $d$, whose effect on another, say $y$, you want to
+estimate.  The problem is that you want to know what will happen to $y$ if $d$
+changes independently from  the other attributes, even though everything is
+collinear in the data and both $y$ and $d$ could be correlated to other
+unobserved confounders.  The best that you can do is to estimate the treatment
+effect -- that of $d$ on $y$ -- while controlling for observable potential
+confounders.  In text analysis, this includes controlling for the
+text content itself.
 
-\begin{table}\small
+
+Consider estimating the effect of a user's experience -- the number of reviews
+that they have written -- on their expected rating.  That is, are experienced
+users more critical, perhaps because they've become more discerning?  Or do
+they tend to give more positive reviews, perhaps because new users only bother
+to give negative feedback or because the community norms encourage a high
+average rating? It is hard to imagine getting firm evidence in either
+direction without running a randomized trial -- we will always be worried
+about the effect of an omitted confounder.  However, we can try our best and
+condition on available information.    In particular, we can condition on
+review content to ask the question: even given the same review message, would
+an experienced user give more or less stars than a newbie?
+
+The response attribute, $v_{iy}$, is  {\it star rating}. The treatment, $v_{id}$, is the log {\it number of reviews} by the author
+(including the current review, so never less than one).  Results for
+estimation of the effect of $v_{id}$ on $v_{iy}$, conditioning on different
+control variables, are detailed in Table \ref{treats}.   A na\"ive estimate
+for the effect of experience on rating, estimated through the marginal
+regression $\ds{E}[v_{iy}] = \beta_0 +  v_{id}\gamma$, is a $\hat\gamma =
+0.003$ increase in number of stars per extra unit log review count. Use
+$\bm{v}_{i,-yd}$ to denote all other attributes.  Then an improved estimate of
+the treatment effect is obtained by fitting $\ds{E}[v_{iy}] = \beta_0 +
+v_{id}\gamma +
+\bm{v}_{i,-yd}'\bs{\beta}$, which yields the much larger $\hat\gamma = 0.015$.
+
+Finally, we'd like to control for $\bm{c}_i$, the review content summarized as word counts.  It would also be nice to control for content interacting with attributes since, e.g., positive content for a restaurant might imply a different star rating boost than it does for a bowling alley.
+Unfortunately, interacting 13,938 dimensional $\bm{c}_i$ with the 333 business categories yields almost 4.7 million regression coefficients.  This is more controls than we have observations.  However, the SR projections offer a low-dimensional alternative.
+Write $z_{iy}$ and $z_{id}$ for the SR
+projections onto response and treatment, respectively.  Then sufficiency factorization implies
+\begin{equation}
+v_{iy},v_{id} \indep \bm{c}_i \mid z_{iy},z_{id},m_i,\bm{v}_{i,-yd}.
+\end{equation}
+That is,  the joint distribution of treatment and control is independent of
+the text given SR projection into each.  This suggests we can control for
+review content, and its interaction with business classification, simply by
+adding to our conditioning set $[z_{iy},z_{id},m_i]$ and its interaction with
+business classification. The resulting regression, with around 13$k$ control
+coefficients instead of 4.7 million, yields the still larger treatment effect
+estimate $\hat\gamma=0.02$.
+
+\begin{table}[htb]\small
+\vskip .25cm
 \begin{tabular}{l|ccc}
-& Marginal & Conditional on non-text covariates & Adding and interacting text SR \\
+& Marginal & Conditional on attributes only & Adding and interacting text SR \\
 \cline{2-4}
-Effect estimate & 0.003 & 0.015 & 0.019
+Effect estimate & 0.003 & 0.015 & 0.020
 \end{tabular}
-\caption{Estimated effect of user experience (log number of reviews) on number of stars above business average.  Each corresponds to different levels of confounder adjustment, increasing from left to right.}
+\caption{\label{treats} Estimated effect `$\gamma$' of user experience (log
+number of reviews) on number of stars rated.  Each corresponds to different
+levels of confounder adjustment.  The effects are all AICc selected estimates
+along a $\gamma=10$ (very near to $L_0$) gamma lasso regularization path,
+where {\it all of the other regression coefficients} were unpenalized. Thus
+they are significant, in the sense that the AICc deems $v_{id}$ useful for
+predicting $v_{iy}$ even after all variation explained by confounders has been
+removed.}
 \end{table}
 
-
-
-Machine learning feats are nice -- e.g., OOS $R^2$ greater than 50\% on the
-log number of f/u/c votes -- but for staff at Yelp it is likely more important
-to understand the sources of variation.  When a new review is written for a
-specific business, Yelp can only promote (or not promote) it relative to
-reviews on the same page.  The question is not `how popular will this review
-be?', but rather `should we promote this review over others for this
-business?'  One way to answer looks at the users: are there certain people who
-write better reviews?  This creates an inference problem -- we want to
-estimate the real effect of user characteristics. This section first describes
-effect estimation under the setup of Section \ref{YELP}, before investigating how
-inference can be improved by conditioning on additional SR projections.
-
-Regularization paths for
-Poisson regression (full generalized linear model, not a linear model for
-log $y$) of  counts $y_i$ on   $\bm{u}_i$ and
-$\bm{z}^a_i$.  This is a gamma lasso fit with $\gamma =10$, for a very concave
-penalty (little bias), such that estimates at the end of the path
-are near the corresponding MLE.  As in any multivariate regression, these coefficients
-represent {\it partial effects} --  change due to
- individual covariates {\it after} controlling for the effect of all other
-inputs.  Consider the coefficient on \cd{usr.cool}, a user's historical
-count of `cool' votes.  This has a negative partial effect (around -0.17 at
-minimum penalty), despite having a big positive marginal effect (if you follow
-the path, you'll see that \cd{usr.cool} is actually the first covariate to
-enter the model).  Thus after you account for the quality
-predictable by funny or useful votes (particularly useful, which is about
-twice as common as the others), extra cool votes indicate someone less likely
-to write popular reviews.  This situation occurs because the individual
-category votes are highly collinear, with correlations between each other of
-0.7 to 0.9.
-
-Inference about regression parameters is notoriously difficult in the presence of high dimensional collinear controls.  Likelihood maximization for the full 14,347
-variable regression in our Yelp example, of vote count on all attributes and all text counts,  would be very expensive and implies only around 15 observations per covariate.  
-In larger problems, $n$ and $\mr{dim}(\bm{x}_i)$ may be so large that such a regression is computationally impossible.
-Unfortunately, the tools that we would usually employ for variable selection (such as a straightforward lasso) will yield biased effect estimates.  To see this, consider
-the regression 
-\begin{equation}\label{teffects}
-\ds{E}[\log y_i] = \beta_0 + d_i\theta  + \bm{x}_i'\bs{\beta}
-\end{equation}
-where $d_i$ is our `treatment' (e.g., user characteristic), $\theta$ is
-the effect of interest, and $\bm{x}_i$ is a large vector of control
-variables (e.g., all other review attributes and the token counts).   There
-will surely be elements of $\bm{x}_i$ that are correlated with $d_i$. If
-we estimate $\bs{\beta}$ under lasso penalization, 
-then $\hat\beta_j \neq 0$ only if there is 
-residual effect of $a_{ij}$ beyond that which can be regressed on $d_i$.  The
- effect for these treatment-collinear variables will be conflated
-into $\hat\theta$, leading it to be mis-estimated simply because $d_i$ is correlated with many
-variables who's effect has been underestimated.  The efficiency of the lasso
-for prediction is now working against us in inference.
-
-In contrast, because the text covariates, $\bm{c}_i$, enter only through the 9
-dimensional SR projection $\bm{z}^a_i$, we are able to use likelihood maximization
- to estimate the partial effects.
-We can improve these estimates still by adding the SR
-projections $z^u_{ik}$ corresponding to the treatments of interest.    To see why, look
-again to the treatment effects regression in (\ref{teffects}): 
-unbiased estimation of $\theta$ needs $\bs{\hat\beta}$ to account both for
-predictability of $\log y_i$ from $\bm{x}_i$ and of $d_i$ from $\bm{x}_i$.  To
-put it another way, an ideal version of (\ref{teffects}) would have $\ds{E}[\log y_i] = \beta_0 + d_i\theta  + \beta_y \ds{E}[\log y_i
-| \bm{x}_i] + \beta_d \ds{E}[d_i | \bm{x}_i]$.  Without the $\beta_d \ds{E}[d_i | \bm{x}_i]$ 
-term, estimated $\hat\theta$ will be confounded with any effects from
-$a_{ij}$ that can be explained by the correlated bit of $d_i$. 
-
-For the same reasons, including in forward regression both $\bm{z}_i^v$ {\it
-and} the relevant elements of $\bm{z}_i^u$, say $\bm{z}_i^d$ where $\bm{d}_i$
-contains the \cd{user.*} elements of $\bm{u}_i$, more fully controls for the
-confounding information available in review text. This is straightforward to
-demonstrate through the MNIR sufficiency results.  The model  has $y_i \indep
-\bm{c}_i | \bm{z}^a_i, \bm{u}_i, m_i$, while an augmented {\it treatment
-effects MNIR} forward model has $y_i, \bm{d}_i \indep
-\bm{c}_i | \bm{z}^a_i,\bm{z}^d_i, \bm{u}_i\!\setminus\!\bm{d}_i, m_i$ with
-$\bm{u}_i\!\setminus\!\bm{d}_i$ the  elements of $\bm{u}_i$ that are
-considered controls. In the latter procedure, it is  the {\it joint}
-distribution of $y_i$ and $\bm{d}_i$ that is made conditionally independent of
-the text information.
 
 \section{Discussion}
 \label{END}
@@ -978,7 +957,7 @@ to believable. This is in contrast to pure prediction problems where, as
 outlined in \cite{taddy_rejoinder:_2013}, one can model inverse regression
 misspecification during forward regression.
 
-Finally, the message of this paper has been that Poisson factorization
+One message of this paper has been that Poisson factorization
 enables fast estimation of multinomial distributions.  It has been pointed out
 to us that, in unstructured data analysis, a Poisson seems little more
 arbitrary than a multinomial model.  Equation (\ref{embed}) clarifies this
