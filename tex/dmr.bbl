@@ -1,0 +1,76 @@
+\begin{thebibliography}{15}
+\newcommand{\enquote}[1]{``#1''}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+
+\bibitem[{Birch(1963)}]{birch_maximum_1963}
+Birch, M.~W. (1963), \enquote{Maximum likelihood in three-way contingency
+  tables,} \textit{Journal of the Royal Statistical Society - Series B}, 25,
+  220--233.
+
+\bibitem[{Cook(2007)}]{cook_fisher_2007}
+Cook, R.~D. (2007), \enquote{Fisher lecture: Dimension reduction in
+  regression,} \textit{Statistical Science}, 22, 1--26.
+
+\bibitem[{Dean and Ghemawat(2004)}]{dean_mapreduce:_2004}
+Dean, J. and Ghemawat, S. (2004), \enquote{{MapReduce}: Simplified data
+  processing on large clusters,} in \textit{Proceedings of Operating Systems
+  Design and Implementation}, pp. 137--150.
+
+\bibitem[{Friedman et~al.(2010)Friedman, Hastie, and
+  Tibshirani}]{friedman_regularization_2010}
+Friedman, J., Hastie, T., and Tibshirani, R. (2010), \enquote{Regularization
+  paths for generalized linear models via coordinate descent,} \textit{Journal
+  of Statistical Software}, 33, 1--22.
+
+\bibitem[{Gopalan et~al.(2013)Gopalan, Hofman, and
+  Blei}]{gopalan_scalable_2013}
+Gopalan, P., Hofman, J.~M., and Blei, D.~M. (2013), \enquote{Scalable
+  recommendation with Poisson factorization,} {arXiv}:1311.1704.
+
+\bibitem[{Hodges and Le~Cam(1960)}]{hodges_poisson_1960}
+Hodges, J.~L. and Le~Cam, L. (1960), \enquote{The Poisson approximation to the
+  Poisson binomial distribution,} \textit{The Annals of Mathematical
+  Statistics}, 31, 737--740.
+
+\bibitem[{Hurvich and Tsai(1989)}]{hurvich_regression_1989}
+Hurvich, C.~M. and Tsai, C.-L. (1989), \enquote{Regression and time series
+  model selection in small samples,} \textit{Biometrika}, 76, 297--307.
+
+\bibitem[{McDonald(1980)}]{mcdonald_poisson_1980}
+McDonald, D.~R. (1980), \enquote{On the Poisson approximation to the
+  multinomial distribution,} \textit{The Canadian Journal of Statistics}, 8,
+  115--118.
+
+\bibitem[{Palmgren(1981)}]{palmgren_fisher_1981}
+Palmgren, J. (1981), \enquote{The Fisher information matrix for log linear
+  models arguing conditionally on observed explanatory variable,}
+  \textit{Biometrika}, 68, 563--566.
+
+\bibitem[{Taddy(2013{\natexlab{a}})}]{taddy_gamma_2013}
+Taddy, M. (2013{\natexlab{a}}), \enquote{The gamma lasso,} {arXiv}:1308.5623.
+
+\bibitem[{Taddy(2013{\natexlab{b}})}]{taddy_measuring_2013}
+--- (2013{\natexlab{b}}), \enquote{Measuring political sentiment on Twitter:
+  factor-optimal design for multinomial inverse regression,}
+  \textit{Technometrics}, 55, 415--425.
+
+\bibitem[{Taddy(2013{\natexlab{c}})}]{taddy_multinomial_2013}
+--- (2013{\natexlab{c}}), \enquote{Multinomial inverse regression for text
+  analysis,} \textit{Journal of the American Statistical Association}, 108,
+  755--770.
+
+\bibitem[{Taddy(2013{\natexlab{d}})}]{taddy_rejoinder:_2013}
+--- (2013{\natexlab{d}}), \enquote{Rejoinder: Efficiency and structure in
+  {MNIR},} \textit{Journal of the American Statistical Association}, 108,
+  772--774.
+
+\bibitem[{Tibshirani(1996)}]{tibshirani_regression_1996}
+Tibshirani, R. (1996), \enquote{Regression shrinkage and selection via the
+  lasso,} \textit{Journal of the Royal Statistical Society, Series B}, 58,
+  267--288.
+
+\bibitem[{Venables and Ripley(2002)}]{venables_modern_2002}
+Venables, W.~N. and Ripley, B.~D. (2002), \textit{Modern applied statistics
+  with S}, New York: Springer, 4th ed., {ISBN} 0-387-95457-0.
+
+\end{thebibliography}
