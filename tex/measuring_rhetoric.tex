@@ -1,5 +1,5 @@
 \documentclass[11pt,xcolor=svgnames]{beamer}
-\usepackage{dsfont,natbib,setspace,changepage,multirow}
+\usepackage{natbib,setspace}
 \mode<presentation>
 
 % replaces beamer foot with simple page number
@@ -28,7 +28,6 @@
 \newcommand{\mc}[1]{\mathcal{#1}}
 \newcommand{\mr}[1]{\mathrm{#1}}
 \newcommand{\bm}[1]{\mathbf{#1}}
-\newcommand{\ds}[1]{\mathds{#1}}
 \newcommand{\indep}{\perp\!\!\!\perp}
 \def\plus{\texttt{+}}
 \def\minus{\texttt{-}}
@@ -46,7 +45,7 @@
 {\bf \LARGE \theme }
 
 \vskip .25cm
-{\bf \LARGE \theme Measuring Rhetoric \bk\vskip .2cm \Large Statistical Language Models in Social Science }
+{\bf \huge \theme Measuring Rhetoric \bk\vskip .2cm \Large Statistical Language Models in Social Science }
 
 \vskip 1cm
 Matt Taddy,  Chicago Booth
@@ -126,9 +125,8 @@ Dumb but works: extra rules aren't worth their complexity.
 
 \vskip .25cm
 There's been an explosion of interest from social scientists.
-{\gr empirical evidence, quantification of social concepts...}
 
-\pause\vskip .25cm
+ \vskip .25cm
 Until very recently, one used pre-defined dictionaries.
 
 
@@ -148,34 +146,93 @@ Psychosocial dictionaries, such as Harvard GI in {\it Tetlock 2007, Giving Conte
 \end{frame}
 
 \begin{frame}
-{Text as data \bk in Social Science}
+{Topic Models}
 
 \vskip .25cm
-{\color<2->{gray}{Techniques from stats and ML are beginning to filter through and researchers are estimating relationships {\it from the data}.}}
+Techniques from stats and ML are beginning to filter through and researchers are estimating relationships {\it from the data}.
 
 \vskip .25cm  
-\only<2>{
-Describe topic models
-}
+A large area of research has developed around {\it topic models} 
+\[\nv
+\bm{c}_i \sim \text{MN}( \omega_{i1} \bs{\theta}_1 + \ldots + \omega_{iK} \bs{\theta}_K, m_i)
+\]
+{\it a multinomial with probabilities $\sum_k \omega_{ik}\bs{\theta}_{k}$ and total $m_i= \sum_jc_{ij}$.}
+
+\vskip .5cm
+This is a factor model for count data.
+
+\vskip .1cm
+Topics provide low-D structure, which the SS interprets.
+
+{\gr Especially common in PoliSci; King, Grimmer, Quinn, ...}
 
 
-\onslide<3>{ {\it Grimmer AJPS 2013:}  fit latent topics in press releases (e.g., `Iraq', `Infastructure') then investigate who uses what topic.
+\vskip .1cm
+A big industry on extensions: dynamic TM, structural TM, ...
+
+\end{frame}
+
+\begin{frame}
+{Topic Models Example}
 
 \begin{center}
 \includegraphics[width=3.75in]{../graphs/grimmer}
 \end{center}
-}
+
+
+{\it Grimmer AJPS 2013:}  fit latent topics in press releases (e.g., `Iraq', `Infastructure') then investigate who uses what topic.
 
 \end{frame}
 
 \begin{frame}
-Regression instead of latent structure.  observables.  partial correlation.
+{Multinomial Regression}
+
+Instead of jumping straight to latent structure, perhaps we can answer our questions by regressing the text onto observables.
+
+
+\vskip .5cm
+Large response {\nv logistic regressions}: 
+
+\vskip .2cm ~~~~$c_{ij}$ count for word $j$ in doc $i$, $m_i$ is total $\sum_j c_{ij}$
+
+\vskip .2cm ~~~~$\bm{c}_i \sim \mr{MN}(\bm{q}_i, m_i)~~\text{with}~~
+q_{ij} = e^{\eta_{ij}}/\sum_l e^{\eta_{il}}$
+
+\vskip .2cm ~~~~${\nv  \eta_{ij} = \alpha_j + \bm{v}_i'\bs{\varphi}_{j}}$ is a `log intensity'  {\gr $\approx \mathrm{E}\log(c_{ij}/m_i)$}
+
+\vskip .5cm
+This is a regression like any other.   
+
+\vskip .2cm
+We will be estimating {\it partial correlations}, can build {\it random effects} and {\it interactions} into $\bm{v}$, ...  all our familiar regression ideas apply.
 
 \end{frame}
 
 \begin{frame}
+{Distributed Multinomial Regression}
 
-making it work: distribution.  reg tools like anywhere (penalty).
+{\gr A regression like any other, except the response is super HD. }
+
+We approximate the MN likelihood with {\it independent} Poissons: 
+{\Large \nv \[
+c_{ij} \sim \mr{Po}(~m_ie^{\eta_{ij}}~)
+\]}
+$\Rightarrow$ you can estimate each regression fully independently!
+
+\vskip .5cm
+This works because MN dependence is {\it only  induced by  totals}.
+
+\vskip -.35cm
+\[
+\mr{MN}\left(\bm{c}_i;~\bs{\pi}_{i}/\Pi_i,
+~m_i\right) = \frac{\prod_j
+\mr{Po}\left(c_{ij};~\pi_{ij}\right)}
+{\mr{Po}\left(m_i;~\Pi_i\right)}~~\text{where}~~\Pi_i = \sum_j \pi_{ij}
+\]
+
+
+DMR is equivalent to MN logit in a variety of simple examples,\\ and performs as well OOS in more complicated examples.
+\vskip -.5cm
 
 \end{frame}
 
