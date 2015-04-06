@@ -112,7 +112,7 @@ All we do is count them.
 Treat tokens for each doc as an i.i.d. sample. 
 
 \vskip .1cm
-{\theme Document $i$ is summarized by counts $c_{ij}$ for tokens $j=1...D$.}
+{\theme Document $i$ is summarized by counts $c_{ij}$ for tokens $j=1...d$.}
 
 \vskip .1cm
 Dumb but works: extra rules aren't worth their complexity.
@@ -242,18 +242,19 @@ $\Rightarrow$ you can estimate each regression fully independently!
 \vskip .5cm
 This works because MN dependence is {\it only  induced by  totals}.
 
-\vskip -.35cm
-\[
-\mr{MN}\left(\bm{c}_i;~\bs{\pi}_{i}/\Pi_i,
-~m_i\right) = \frac{\prod_j
-\mr{Po}\left(c_{ij};~\pi_{ij}\right)}
-{\mr{Po}\left(m_i;~\Pi_i\right)}~~\text{where}~~\Pi_i = \sum_j \pi_{ij}
-\]
+% \vskip -.35cm
+% \[
+% \mr{MN}\left(\bm{c}_i;~\bs{\pi}_{i}/\Pi_i,
+% ~m_i\right) = \frac{\prod_j
+% \mr{Po}\left(c_{ij};~\pi_{ij}\right)}
+% {\mr{Po}\left(m_i;~\Pi_i\right)}~~\text{where}~~\Pi_i = \sum_j \pi_{ij}
+% \]
 
-
+\vskip .25cm
 DMR is equivalent to MN logit in a variety of simple examples,\\ and is shown empirically to perform well in more complex settings.
-\vskip -.5cm
 
+\vskip .25cm
+Everything in distribution: estimation, penalization, selection ...
 \end{frame}
 
 \begin{frame}
@@ -277,17 +278,189 @@ DMR fixes $\hat \mu_i = \log m_i$, so LHD factorizes to independent Poissons.
 
 
 \vskip .5cm{\gr
-More generally: for Big Data, consider using marginal estimates of parameters about which you have little uncertainty.  \\Focus computation on the bits that are hard to measure.}
+More generally: for Big Data, consider using plug-in [marginal] estimates of parameters about which you have little uncertainty.  \\Focus computation on the bits that are hard to measure.}
 
 
 \end{frame}
 
 \begin{frame}
+{Yelp Reviews}
 
-answering social questions: yelp egs.
+We'll illustrate using {\theme publicly available} review data from Yelp.
+
+\vskip .2cm
+\begin{itemize}
+\item $n=$ 215,879 reviews on 11,535 businesses by 43,873
+users.
+\item taken around Phoenix AZ on January 19, 2013.
+\item $d=$ 13,938 words in more than 20 reviews.  
+\end{itemize}
+
+\vskip .2cm
+The reviews are marked with review, business, and user attributes: number of stars, user and business star averages, business type (333 overlapping), and {\theme the number of funny/useful/cool votes.}
 
 \end{frame}
 
+\begin{frame}
+
+Each {\it word-j} intensity regression equation has
+\[
+\eta_{ij} = \alpha_j + \bm{a}_i'\bs{\varphi}_j^a+ \bm{b}_i'\bs{\varphi}_j^b
+\]
+where we've resolved the meta-data attributes $\bm{V} = [~\bm{A} ~\bm{B}~]$\\ into variables of primary interest  and those viewed as controls
+\begin{itemize}
+\item[\bk \bf a:] star and vote counts; 11 dimensional.
+\item[\bk \bf b:] 400 categories and 11,500 business random effects.
+\end{itemize}
+
+
+\vskip .5cm
+Estimate parameters to minimize the penalized Poisson deviance
+\[
+\hat\alpha_j,\bs{\hat\varphi}_j = 
+ \mathrm{argmin} \left\{l(\alpha_j,\bs{\varphi}_j) + n \lambda \left[\sum_k \omega^a_{jk} |\varphi^a_{jk} | + \frac{1}{\tau}\sum_k \omega^b_{jk} |\varphi^b_{jk} |\right]\right\}
+\]
+{\gr \it one-step estimator paths for concave regularization, 2015.}
+\end{frame}
+
+\begin{frame}
+
+\includegraphics[width=\textwidth]{../graphs/yelp_ir_paths}
+
+\vskip .5cm
+Poisson regression regularization paths under relative weight $\tau=2$.  
+
+AICc selection is marked.
+
+\end{frame}
+
+\begin{frame}
+
+{\bf\theme Resolving correlated effects}
+
+\vskip .2cm
+Bigger $\tau$ gives fewer but {\it cleaner} nonzero terms.
+
+{\tiny\setstretch{1.25}\color{black!80}
+\hspace{-.25cm}\begin{tabular}{cll|r}
+& \scriptsize $\bs{\tau}$ & \scriptsize $|\bs{\hat\varphi}|_0$ 
+& \scriptsize {\bf top ten words by loading}\\
+\noalign{\smallskip}
+\hline
+ & \multicolumn{2}{l|}{marg}    & \tiny\it great love amaz favorite deliciou best awesome alway perfect excellent \\
+\scriptsize +stars & 2 & 8440 & \tiny\it  unmatch salute :-)) prik laurie pheonix trove banoffee exquisite sublime \\
+ & 20 & 3077 & \tiny\it  heaven perfection gem divine amaz die superb phenomenal fantastic deliciousnes \\
+ & 200 & 508 & \tiny\it  gem heaven awesome wonderful amaz fantastic favorite love notch fabulou \\
+\hline
+&  \multicolumn{2}{l|}{marg}   & \tiny\it  not worst ask horrib minut rude said told would didn \\
+\scriptsize -stars & 2 & 8440 & \tiny\it  rude livid disrespect disgrace inexcusab grosse incompet audacity unmelt acknowl \\
+ & 20 & 3077 & \tiny\it  rude incompet unaccept unprofession inedib worst apolog disrespect insult acknowl \\
+ & 200 & 508 & \tiny\it  worst horrib awful rude inedib terrib worse tasteles disgust waste \\
+\hline
+ & \multicolumn{2}{l|}{marg}   & \tiny\it  you that know like your yelp ... what don who \\
+\scriptsize funny & 2 & 6508 & \tiny\it  dimsum rue reggae acne meathead roid bong crotch peni fart \\
+ & 20 & 1785 & \tiny\it  bitch shit god dude boob idiot fuck hell drunk laugh \\
+ & 200 & 120 & \tiny\it  bitch dear god hell face shit hipst dude man kidd \\
+ \hline
+ &  \multicolumn{2}{l|}{marginal}   & \tiny\it  that yelp you thi know biz-photo like all http :// \\
+\scriptsize useful & 2 & 5230 & \tiny\it  fiancee rife dimsum maitre jpg poultry harissa bureau redirect breakdown \\
+ & 20 & 884 & \tiny\it  biz-photo meow harissa www bookmark :-/ http :// (?), tip \\
+ & 200 & 33 & \tiny\it  www http :// com factor already final immediate ask hope \\
+\hline\end{tabular}}
+
+\vskip .5cm
+I think $\tau=20$ strikes a good balance here.
+
+\vskip -.5cm
+\end{frame}
+
+\begin{frame}
+
+{\bf \theme Sufficient Reduction}
+
+\vskip .5cm
+What is the funny/useful/cool content of a review?
+
+\vskip .5cm
+Coefficients $\bs{\Phi}$ are a linear map from text to attribute space.
+
+\vskip .1cm
+They provide a {\it sufficient reduction}. For example,
+\[
+\bm{a}_i \indep \bm{c}_i \mid
+\bs{\Phi}^a \bm{c}_i, \bm{b}_i, m_i
+\]
+where $\bs{\Phi}^a$ are loadings relevant to our `primary interest' covariates.
+
+\vskip .5cm
+In words: the 11 dimensional $\theme \bm{z}_i = \bs{\Phi}^a \bm{c}_i$ contains all the information in the text that is {\it directly} relevant to $\bm{a}_i$, controlling for $\bm{b}_i$ and $m_i$.
+
+\end{frame}
+
+\begin{frame}
+
+\footnotesize
+
+{\bf Funniest and most useful 50-100 word review, as voted by Yelp users\\ {\gr (votes normalized by square root of review age).}}
+
+\vskip .5cm{\it\color{black!70}\nv
+I use to come down to Coolidge quite a bit and one of the cool things I use to do was come over here and visit the ruins.  A great piece of Arizona history!  Do you remember the Five C's?  Well, this is cotton country. The Park Rangers will tell you they don't really know how old the ruins are, but most guess at around 600 years plus.  But thanks to a forward thinking US Government, the ruins are now protected by a 70 foot high shelter.  Trust me, it comes in handy in July and August, the two months I seem to visit here most.  LOL.  I would also recommend a visit to the bookstore.  It stocks a variety of First Nation history, as well as info on the area.
+  http://www.nps.gov/cagr/index.htm.  While you are in Coolidge, I would recommend the Gallopin' Goose for drinks or bar food, and Tag's for dinner.  Both are great!}
+
+\end{frame}
+
+
+\begin{frame}
+
+{\bf 50-100 word review with the most funny content, \\as measured by SR projection 
+$\bs{z_{\texttt{funny}}} = \bs{\hat\phi}_{\texttt{funny}}'\bm{c}$.}
+
+\vskip .25cm
+{\it \nv Dear La Piazza al Forno: We need to talk. I don't quite know how to say this so I'm just going to come out with it. I've been seeing someone else. How long? About a year now. Am I in love? Yes. Was it you? It was. The day you decided to remove hoagies from your lunch menu, about a year ago, I'm sorry, but it really was you...and not me.  Hey... wait... put down that pizza peel... try to stay calm... please? [Olive oil container whizzing past head] Please! Stop throwing shit at me... everyone breaks up on social media these days... or haven't you heard?  Wow, what a Bitch!}
+
+\vskip .75cm
+{\bf most funny by $\bs{z_{\texttt{funny}}}/m$:} ~~~\textit{\nv Holy Mother of God}
+
+\end{frame}
+
+\begin{frame}
+
+{\bf 50-100 word review with the most useful content, \\as measured by SR projection 
+$\bs{z_{\texttt{useful}}} = \bs{\hat\phi}_{\texttt{useful}}'\bm{c}$.}
+
+\vskip .25cm
+{\it \nv We found Sprouts shortly after moving to town.  There's a nice selection of Groceries \& Vitamins.  It's like a cheaper, smaller version of Whole Foods.
+[biz-photo] [biz-photo] We shop here at least once a week.  I like their selection of Peppers....I like my spicy food! [biz-photo][biz-photo][biz-photo] Their freshly made Pizza isn't too bad either. [biz-photo] Overall, it's a nice shopping experience for all of us. Return Factor - 100\%}
+
+\vskip .75cm
+{\bf most useful by $\bs{z_{\texttt{useful}}}/m$:} ~~~\textit{\nv Ask for Nick!}
+
+\end{frame}
+
+\begin{frame}
+
+The SR projections are based on {\it partial correlations}.  
+
+\vskip .25cm
+E.g., compare the correlation matrices
+\begin{center}\vskip -.5cm
+~~~~~~\begin{tabular}{r|ccccr|cccc}
+ \multicolumn{4}{l}{\it attributes ($\bm{v}$)} & & 
+ \multicolumn{4}{l}{\it \hskip .3cm text projections ($\bm{z}$)} \\ 
+ %\multicolumn{10}{c}{}\\
+\multicolumn{1}{c}{}& f & u &c & $\star$ &  \multicolumn{1}{c}{}&f & u &c & $\star$\\
+\cline{2-5}\cline{7-10}
+funny &  1 &  0.7 &  0.8 &   0 & \hskip .3cm funny &  1 &  -0.1 &  -0.7 &  -0.4\\
+useful &  0.7 &  1 &  0.9 &   0 & \hskip .3cm useful &  -0.1 &  1 &  0.1 &  -0.2\\
+cool &  0.8 &  0.9 &  1 &   0 & \hskip .3cm cool &  -0.7 &  0.1 &  1 &  0.5\\
+stars &   0 &   0 &   0 &  1 & \hskip .3cm stars &  -0.4 &  -0.2 &  0.5 &  1\\
+\end{tabular}
+\end{center}
+
+\vskip .5cm
+SR projections make great inputs to prediction algorithms: {\theme MNIR}.
+
+\end{frame}
 \begin{frame}
 
 Segregation in HD: adding random effects.  interpret SR as utility.
