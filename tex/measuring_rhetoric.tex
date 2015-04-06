@@ -70,7 +70,6 @@ Social science text-as-data from the 1960s: \\~~~author identification in the Fe
 \end{frame}
 
 \begin{frame}
-{History: \theme Text as data}
 
 
 M{\tt+}W count words in papers by Hamilton and Madison,
@@ -113,7 +112,7 @@ All we do is count them.
 Treat tokens for each doc as an i.i.d. sample. 
 
 \vskip .1cm
-Document $i$ is summarized by counts $c_{ij}$ for tokens $j=1...D$.
+{\theme Document $i$ is summarized by counts $c_{ij}$ for tokens $j=1...D$.}
 
 \vskip .1cm
 Dumb but works: extra rules aren't worth their complexity.
@@ -156,44 +155,63 @@ A large area of research has developed around {\it topic models}
 \[\nv
 \bm{c}_i \sim \text{MN}( \omega_{i1} \bs{\theta}_1 + \ldots + \omega_{iK} \bs{\theta}_K, m_i)
 \]
-{\it a multinomial with probabilities $\sum_k \omega_{ik}\bs{\theta}_{k}$ and total $m_i= \sum_jc_{ij}$.}
+{a multinomial with probabilities $\sum_k \omega_{ik}\bs{\theta}_{k}$ and size $m_i= \sum_jc_{ij}$.}
+
+\vskip .25cm
+{\gr\hfill\it (Latent Dirichlet Allocation; Blei, Ng, Jordan 2003)~~~}
 
 \vskip .5cm
 This is a factor model for count data.
 
-\vskip .1cm
-Topics provide low-D structure, which the SS interprets.
-
-{\gr Especially common in PoliSci; King, Grimmer, Quinn, ...}
-
-
-\vskip .1cm
-A big industry on extensions: dynamic TM, structural TM, ...
 
 \end{frame}
 
 \begin{frame}
-{Topic Models Example}
+
+Topics provide low-D structure, which the SS interprets.
+
+{\gr Especially common in PoliSci; King, Grimmer, Quinn, ...}
+
 
 \begin{center}
 \includegraphics[width=3.75in]{../graphs/grimmer}
 \end{center}
 
 
-{\it Grimmer AJPS 2013:}  fit latent topics in press releases (e.g., `Iraq', `Infastructure') then investigate who uses what topic.
+{\it Grimmer 2013:}  fit latent topics in press releases \\(e.g., `Iraq', `Infastructure') then investigate who uses what topic.
+
+\end{frame}
+
+\begin{frame}
+{Structured topic models}
+
+The basic topic model finds {\it dominant sources of variation} in $\bm{C}$.
+
+\vskip .1cm
+In SocSci, this is often not what we're seeking (needle \texttt{+} haystack).
+
+\vskip .5cm
+There is a huge industry on extensions to topic models that push the topics to be relevant or interpretable for specific questions. \\\hfill{\gr supervised TM, dynamic TM, structural TM, IR TM ...~~~~~}
+
+\vskip .5cm
+These model weights ($\omega$) and topics ($\theta$) as functions of covariates.
+
+\vskip .1cm
+Lots of good and interesting work.
+
+
 
 \end{frame}
 
 \begin{frame}
 {Multinomial Regression}
 
-Instead of jumping straight to latent structure, perhaps we can answer our questions by regressing the text onto observables.
+Instead of jumping straight to latent structure, perhaps we can answer our questions by regressing the text onto observables `$\bm{v}$'.
 
 
 \vskip .5cm
-Large response {\nv logistic regressions}: 
+Massive response {\nv logistic regressions}: 
 
-\vskip .2cm ~~~~$c_{ij}$ count for word $j$ in doc $i$, $m_i$ is total $\sum_j c_{ij}$
 
 \vskip .2cm ~~~~$\bm{c}_i \sim \mr{MN}(\bm{q}_i, m_i)~~\text{with}~~
 q_{ij} = e^{\eta_{ij}}/\sum_l e^{\eta_{il}}$
@@ -206,6 +224,8 @@ This is a regression like any other.
 \vskip .2cm
 We will be estimating {\it partial correlations}, can build {\it random effects} and {\it interactions} into $\bm{v}$, ...  all our familiar regression ideas apply.
 
+\vskip .25cm
+{\gr \it MN Inverse Regression \texttt{+} rejoinder, 2013.  Political Sentiment on Twitter, 2013.  Distributed MN Regression, 2015.}
 \end{frame}
 
 \begin{frame}
@@ -214,7 +234,7 @@ We will be estimating {\it partial correlations}, can build {\it random effects}
 {\gr A regression like any other, except the response is super HD. }
 
 We approximate the MN likelihood with {\it independent} Poissons: 
-{\Large \nv \[
+{\large \nv \[
 c_{ij} \sim \mr{Po}(~m_ie^{\eta_{ij}}~)
 \]}
 $\Rightarrow$ you can estimate each regression fully independently!
@@ -231,8 +251,34 @@ This works because MN dependence is {\it only  induced by  totals}.
 \]
 
 
-DMR is equivalent to MN logit in a variety of simple examples,\\ and performs as well OOS in more complicated examples.
+DMR is equivalent to MN logit in a variety of simple examples,\\ and is shown empirically to perform well in more complex settings.
 \vskip -.5cm
+
+\end{frame}
+
+\begin{frame}
+
+More precisely, start from the Poisson:
+\[
+c_{ij}\stackrel{ind}{\sim}\mathrm{Pois}\left(\exp\left[\mu_{i}+\eta_{ij}\right]\right)
+\]
+where $\mu_{i}$ is an `verbosity' nuisance parameter.
+
+
+\vskip .1cm
+This model leads to 
+\[
+\Pr\left(\mathbf{c}_{i}\mid m_{i}\right)=\frac{\prod_{j}\mathrm{Po}\left(c_{ij};\exp\left[\mu_{i}+\eta_{ij}\right]\right)}{\mathrm{Po}\left(m_{i};\sum_{l}\exp\left[\mu_{i}+\eta_{il}\right]\right)}=\mathrm{MN}(\mathbf{c}_{i};\mathbf{\,\, q}{}_{i},m_{i})
+\]
+Thus, given $m_i$, Poisson and MN imply the same  model.
+
+\vskip .1cm
+DMR fixes $\hat \mu_i = \log m_i$, so LHD factorizes to independent Poissons.
+
+
+\vskip .5cm{\gr
+More generally: for Big Data, consider using marginal estimates of parameters about which you have little uncertainty.  \\Focus computation on the bits that are hard to measure.}
+
 
 \end{frame}
 
