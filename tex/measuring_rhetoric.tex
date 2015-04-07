@@ -412,6 +412,8 @@ I use to come down to Coolidge quite a bit and one of the cool things I use to d
 
 \begin{frame}
 
+\footnotesize
+
 {\bf 50-100 word review with the most funny content, \\as measured by SR projection 
 $\bs{z_{\texttt{funny}}} = \bs{\hat\phi}_{\texttt{funny}}'\bm{c}$.}
 
@@ -424,6 +426,8 @@ $\bs{z_{\texttt{funny}}} = \bs{\hat\phi}_{\texttt{funny}}'\bm{c}$.}
 \end{frame}
 
 \begin{frame}
+
+\footnotesize
 
 {\bf 50-100 word review with the most useful content, \\as measured by SR projection 
 $\bs{z_{\texttt{useful}}} = \bs{\hat\phi}_{\texttt{useful}}'\bm{c}$.}
@@ -461,9 +465,155 @@ stars &   0 &   0 &   0 &  1 & \hskip .3cm stars &  -0.4 &  -0.2 &  0.5 &  1\\
 SR projections make great inputs to prediction algorithms: {\theme MNIR}.
 
 \end{frame}
+
 \begin{frame}
 
-Segregation in HD: adding random effects.  interpret SR as utility.
+{\bf Confounder Adjustment}
+
+\vskip .1cm
+Text is also a useful, but high-dimensional, control.
+
+\vskip .25cm
+For example: does a user's experience effect their review ranking?
+
+{\gr Do they get more positive, say because of a yelp community effect?}
+
+\vskip .25cm
+{\theme Given the same review, do experienced users give more/less stars then a newbie?}
+We can answer by {\it controlling} for review content.
+
+\vskip .5cm
+Treatment effect of experience on rating
+\begin{itemize}
+\item response attribute, $v_{iy}$, is  {\it star rating}. 
+\item treatment, $v_{id}$, is the log {\it number of reviews} by the author.
+\item controls are $\bm{v}_{i,-yd}$ (everything else) and $\bm{c}_i$.
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+
+Given our MN language model,
+\[
+v_{iy},v_{id} \indep \bm{c}_i \mid z_{iy},z_{id},m_i,\bm{v}_{i,-yd}
+\]
+So  the {\it joint distribution} of treatment and response is independent of 
+review content ($\bm{c}$) given the SR projections on each ($z_{iy},z_{id}$).
+
+\vskip .5cm
+We can control for this content, {\it and its interaction with business classification},
+and estimate treatment effect $\gamma$ in 
+\[
+\mathrm{E}[v_{iy}] = \gamma v_{id} + f( z_{iy},z_{id},m_i,\bm{v}_{i,-yd} )
+\]
+This gives {\theme $\hat \gamma = 0.02$}, vs a marginal effect near zero and an effect of 0.015 conditioning on $\bm{v}_{i,-yd}$ alone.  {\gr Interacting $\bm{c}_i$ with biz class gives 5 million coefficients $\Rightarrow$ not enough degrees of freedom.}
+
+\end{frame}
+
+\begin{frame}
+{Measuring segregation in high dimensions}
+
+With Gentzkow\texttt{+}Shapiro, the congressional record since 1873 and a question:
+{\theme ``How has  partisanship of rhetoric changed over time?''}
+
+\vskip .5cm
+The concept here is of speakers across parties:
+\begin{itemize}
+\item using different words to describe the same thing\\
+{\tt\theme tax.cut}/{\tt\nv tax.break}, 
+{\tt\theme war.on.terror}/{\tt\nv war.in.iraq}
+\item choosing to focus on different substantive topics\\
+{\tt\theme stem.cell}, {\tt\nv african.american}, %{\tt\nv sea.level}, 
+{\tt\theme soldier.sailor}.
+\end{itemize}
+And doing this because of party membership or ideology.
+
+\end{frame}
+
+\begin{frame}
+
+In HD, indices of segregation  can have strange properties: variation in the index is dominated by your ability to measure it.
+
+\vskip .5cm
+G\texttt{+}S 2013, {\it Slant index} on 10k most common phrases
+
+\vskip .1cm
+\includegraphics[width=\textwidth]{../graphs/slant_10k}
+
+\vskip .1cm
+Real is Dem v. GOP.  Random is a random permutation.
+\end{frame}
+
+
+\begin{frame}
+
+In HD, indices of segregation  can have strange properties: variation in the index is dominated by your ability to measure it.
+
+\vskip .5cm
+G\texttt{+}S 2011, {\it Isolation index} on 10k most common phrases
+
+\vskip .1cm
+\includegraphics[width=\textwidth]{../graphs/isolation_10k}
+
+\vskip .1cm
+Real is Dem v. GOP.  Random is a random permutation.
+\end{frame}
+
+
+\begin{frame}
+
+Instead, we write down a {\theme multinomial choice model} with intensities
+\[
+\eta_{ijt}  =\alpha_{jt}+\mathbf{u}_{it}'\boldsymbol{\gamma}_{j}+\varphi_{jt}'r_{it} 
+\]
+So that $\eta_{ijt}$ is the mean utility of phrase 
+$j$ for speaker  $i$ in session $t$.
+
+\vskip .25cm
+$\mathbf{u}_{it}$ are measured attributes of speaker $i$ in session  $t$ (e.g., state, chamber), excluding the Republican party membership indicator $r_{it}$.
+
+
+\vskip .5cm
+The SR projection for (Republican) partisanship is $z_{it} = \bs{\varphi}_{t}'\bm{c}_{it}$.
+
+\vskip .25cm
+Here, this is the expected utility gain to a Republican relative to a Democrat from speaking exactly like speaker $i$
+  in session $t$.
+
+\end{frame}
+
+\begin{frame}
+
+We use a spline model to allow $\bs{\varphi}_{t}$ to change slowly in time.
+
+\vskip .5cm
+\includegraphics[width=\textwidth]{../graphs/loaded_tax}
+
+\end{frame}
+
+
+\begin{frame}
+
+We use a spline model to allow $\bs{\varphi}_{t}$ to change slowly in time.
+
+\vskip .5cm
+\includegraphics[width=\textwidth]{../graphs/loaded_race}
+
+\end{frame}
+
+\begin{frame}
+
+SR measures {\it preferences} in a structural model.  
+
+\vskip .1cm
+Segregation of preferences is $\bar z_{\texttt{gop},t} - \bar z_{\texttt{dem},t}$.
+
+
+\includegraphics[width=\textwidth]{../graphs/bic-polars}
+
+We see a clear pattern: partisanship explodes after Carter.
 
 \end{frame}
 
