@@ -618,8 +618,120 @@ We see a clear pattern: partisanship explodes after Carter.
 \end{frame}
 
 \begin{frame}
+{Messaging and Negotiation on eBay.com}
 
-moving to more complex language models: w2v and messaging.
+eBay has a `{\theme best offer}' button; a buyer can use this to circumvent the auction or fixed price sale, and make a direct offer to the seller.
+
+\vskip .5cm
+We track the communication.  
+
+\vskip .5cm
+After controlling for parameters of the transaction {\gr (item, buyer offer, seller/buyer info, ...)} {\theme what language leads to a higher probability of a seller responding with a deal or counteroffer?}
+
+\vskip .5cm
+We can use the results to educate buyers, give templates/examples, or generate hypotheses on bargaining behavior.
+
+\end{frame}
+
+\begin{frame}
+
+To isolate the targeted effect, we first remove what was predictable from the 0/1 response, $y:$ `did seller respond to buyer?'
+
+\vskip .5cm
+Fit $p_i = \mr{p}(y_i=1 | \bm{x}_i)$ as an {\it Empirical Bayesian Forest} ($\approx$ an RF).
+
+{\gr $\bm{x}$: buyer, seller, item attributes (even includes sale title topics). }
+
+\vskip .5cm
+\includegraphics[width=\textwidth]{../graphs/botrunk}
+
+\vskip .5cm
+Then we look at the SR projection from text onto $r_i = y_i - \hat p_i$.
+
+\end{frame}
+
+\begin{frame}
+
+First, without the synthetic treatment residual: 
+
+\vskip .1cm
+Log intensity $\eta_{ij} = \alpha_j + \varphi_j^y {\color{red} y_i} + \bm{x}_i'\bs{\beta_j}$, SR $z_i^y = \bm{c}_i'\bs{\varphi}^y$.
+
+\vskip .2cm
+The highest $z_i$ all showed evidence of previous deals and bundling.
+
+The lowest $z_i$ are agressive offers, driving a hard bargain:
+
+\vskip .5cm
+{\footnotesize \nv \it \setstretch{1}
+know this low but its based on what individual cards selling
+
+\vskip .2cm
+give you two cash you ship it free its very common low end wing has broken pin good pin youd be lucky get this real its worth melt price dont believe me its really not worth listing fees that you paid
+
+\vskip .2cm
+hi my offer basically what price guide lists individual cards it may seem too low you but it never hurts place offer regards richard
+
+\vskip .2cm
+do you know that clubhouse sigs fakes worthless ridiculous fake sigs thats why other ball sold they were real sigs real sigs lot better its like gehrigs wife signing his name not worth anything
+
+\vskip -.5cm
+}
+
+\end{frame}
+
+
+\begin{frame}
+
+Now, with residual $r_i$ as treatment: 
+
+\vskip .1cm
+Log intensity $\eta_{ij} = \alpha_j + \varphi_j {\color{blue} r_i} + \bm{x}_i'\bs{\beta_j}$, SR $z_i = \bm{c}_i'\bs{\varphi}$.
+
+\vskip .2cm
+The highest $z_i$ are still previous deals and bundling.
+
+But the lowest $z_i$ are now pleading:
+
+\vskip .5cm
+{\footnotesize \nv \it \setstretch{1}
+kcollect sorcerer mickey pins know that my offer not close what you asking cant afford pay much more than my offer but really want this pin please let me know you can make counteroffer this offer not acceptabl
+
+\vskip .2cm
+you dont like offer feel free tell me what lowest youll go on these cards like you ive been collect since was im now hope we can reach deal wich fair both us by way they some awsome cards !!
+
+\vskip .2cm
+hello my friend hope my offer good enough really want free ticket comic fair ... cgc going be there they grading comics also do you know how much they charge grade comic thkas greg
+
+\vskip .2cm
+last one sold on dec 26th ,, can match that price im also interested prince fielder allen ginter was wondering how much pair ?? can have money ur account tonight we can reach deal thanks your time ,,
+
+\vskip -.5cm
+}
+
+\end{frame}
+
+\begin{frame}
+{wrap up}
+
+\vskip .5cm
+{Big picture: \theme  Give regression a chance!}  
+
+\vskip .1cm
+Everything here -- random effects, synthetic controls, lasso variable selection, utility interpretations -- is common in regression.  
+
+We can apply the same ideas to text via DMR.
+
+\vskip .5cm
+{\theme Future pitch:} I've been learning about the recently popular `deep' distributed language models (e.g., word2vec) that have a word's probability dependent upon its neighbors.  
+
+\vskip .1cm
+We can add covariates into these `models', and I hope it will lead to even cleaner SR projections.
+
+\begin{center}
+\huge
+Thanks!
+\end{center}
 
 \end{frame}
 
