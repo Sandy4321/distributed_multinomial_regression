@@ -46,23 +46,23 @@ Palmgren, J. (1981), \enquote{The Fisher information matrix for log linear
   models arguing conditionally on observed explanatory variable,}
   \textit{Biometrika}, 68, 563--566.
 
-\bibitem[{Taddy(2013{\natexlab{a}})}]{taddy_gamma_2013}
-Taddy, M. (2013{\natexlab{a}}), \enquote{The gamma lasso,} {arXiv}:1308.5623.
-
-\bibitem[{Taddy(2013{\natexlab{b}})}]{taddy_measuring_2013}
---- (2013{\natexlab{b}}), \enquote{Measuring political sentiment on Twitter:
-  factor-optimal design for multinomial inverse regression,}
-  \textit{Technometrics}, 55, 415--425.
-
-\bibitem[{Taddy(2013{\natexlab{c}})}]{taddy_multinomial_2013}
---- (2013{\natexlab{c}}), \enquote{Multinomial inverse regression for text
+\bibitem[{Taddy(2013{\natexlab{a}})}]{taddy_multinomial_2013}
+Taddy, M. (2013{\natexlab{a}}), \enquote{Multinomial inverse regression for text
   analysis,} \textit{Journal of the American Statistical Association}, 108,
   755--770.
 
-\bibitem[{Taddy(2013{\natexlab{d}})}]{taddy_rejoinder:_2013}
---- (2013{\natexlab{d}}), \enquote{Rejoinder: Efficiency and structure in
+\bibitem[{Taddy(2013{\natexlab{b}})}]{taddy_rejoinder:_2013}
+--- (2013{\natexlab{b}}), \enquote{Rejoinder: Efficiency and structure in
   {MNIR},} \textit{Journal of the American Statistical Association}, 108,
   772--774.
+
+\bibitem[{Taddy(2013{\natexlab{b}})}]{taddy_measuring_2013}
+--- (2013{\natexlab{d}}), \enquote{Measuring political sentiment on Twitter:
+  factor-optimal design for multinomial inverse regression,}
+  \textit{Technometrics}, 55, 415--425.
+
+\bibitem[{Taddy(2014)}]{taddy_gamma_2013}
+--- (2014), \enquote{One-step estimator paths for concave regularization,} {arXiv}:1308.5623.
 
 \bibitem[{Tibshirani(1996)}]{tibshirani_regression_1996}
 Tibshirani, R. (1996), \enquote{Regression shrinkage and selection via the
