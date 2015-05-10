@@ -357,9 +357,9 @@ applied independently for each category $j$ regression}, so that only a single
 set of coefficients need be communicated back to a head node. 
 
 Analysis in this article applies the {\it gamma lasso} algorithm  of
-\citet{taddy_gamma_2013}, wherein weights $\omega_j$ diminish as a
+\citet{taddy_one-step_2014}, wherein weights $\omega_j$ diminish as a
 function of $|\hat\varphi_j|$.\footnote{The iteratively reweighted least
-squares algorithm in Section 6 of \citet{taddy_gamma_2013} applies directly to Poisson
+squares algorithm in Section 6 of \citet{taddy_one-step_2014} applies directly to Poisson
 family regressions by setting each iteration's `observation weights' $e^{\eta_{ij}}$ and
 `weighted response' $\eta_{ij} + c_{ij}/e^{\eta_{ij}} - 1$.}  In particular,
 along the grid of $\lambda_t$ squelch values,
@@ -386,13 +386,13 @@ minimize a {\it corrected AIC} \citep{hurvich_regression_1989}
 \end{equation}
 where $df_j$ is the estimated {\it degrees of freedom} used to fit
 $\{\hat\alpha_j,\bs{\hat\varphi}_j\}$.  This corrects the AIC's tendency to
-over-fit, and \cite{taddy_gamma_2013} finds that AICc performs well with the gamma lasso.   In Section
+over-fit, and \cite{taddy_one-step_2014} finds that AICc performs well with the gamma lasso.   In Section
 \ref{FGL}, where computation costs are very low, we also consider CV selection
 rules: both CV1se, which chooses the largest $\lambda_t$ with mean OOS
 deviance no more than one standard error away from  minimum, and CVmin,
 which chooses $\lambda_t$ at lowest mean OOS deviance.
 
-See \cite{taddy_gamma_2013} for much more detail on these techniques. That article reviews
+See \cite{taddy_one-step_2014} for much more detail on these techniques. That article reviews
 diminishing bias  regularization by emphasizing its close relationship
 to  weighted $L_1$ penalization.  
 
@@ -1002,7 +1002,7 @@ Finally, we wish to emphasize the relative simplicity of this approach.
 Although this article describes models for complex language systems, and it
 may not seem to the reader that we are providing anything `simple', almost all
 of this material is {\it just Poisson regression.}   We have used the ideas of
-\cite{taddy_gamma_2013} and the gamma lasso to fit these regressions, but any
+\cite{taddy_one-step_2014} and the gamma lasso to fit these regressions, but any
 generalized linear model estimator could have been applied.  As implemented in
 this article, there are only two tuning parameters in the entire system:  the
 gamma lasso weight $\gamma$, which can be safely fixed at zero (for lasso
@@ -1016,13 +1016,15 @@ models (e.g., topic models) as the first step in their analysis.  Unless the
 phenomena that they'd like to measure is a dominant source of variation in
 word choice, these latent topics will be mostly irrelevant.  The same
 scientist faced with more familiar response variables -- such as money spent
--- would likely have used regression modeling with a mix
-of observable covariates and fixed or random effects, instead of trying to
-model any sort of latent space.  Thus, without wanting to claim that topic and
-related models are not useful (they are very useful), we hope that this
-article will give social scientists the option of using the same type of
-regression tools for text analysis that they use successfully in their
-non-text research.
+-- would likely have used regression modeling with a mix of observable
+   covariates and fixed or random effects, instead of trying to model any sort
+   of latent space.  We do not want to claim that topic models are never 
+   useful
+   -- they can be, and authors such as \citet{rabinovich_inverse_2014} and
+   \cite{roberts_structural_2013} apply observable covariates in combination
+   with latent topics.  However, we hope that this article will give social
+   scientists the option of using the same type of standard regression tools for
+   text analysis that they use successfully in their non-text research.
 
 \appendix
 \section{Appendix: MapReduce details}
